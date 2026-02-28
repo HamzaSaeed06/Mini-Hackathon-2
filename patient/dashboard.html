@@ -4,32 +4,302 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Clinic Management - Patient Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Patient Dashboard - CareSync AI</title>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="../css/style.css">
-    <style>
-        .dashboard-body {
-            padding: 2rem;
-        }
-
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/dashboard.css">
 </head>
 
-<body class="dashboard-body bg-light-blue">
-    <div class="dashboard-header">
-        <h1>Patient Dashboard</h1>
-        <button id="logout-btn" class="btn btn-primary" onclick="window.location.href='../index.html'">Logout</button>
-    </div>
-    <div class="glass-panel" style="padding: 2rem;">
-        <h2>Welcome to the Patient Portal</h2>
-        <p>This is a placeholder for the Patient Dashboard.</p>
-    </div>
+<body class="bg-light-blue">
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <span class="brand-icon" style="color: var(--success);"><i data-lucide="heart"></i></span>
+                <span>CareSync Patient</span>
+            </div>
+            <!-- Close button for mobile -->
+            <button class="sidebar-close-btn" id="sidebar-close-btn" onclick="closeSidebar()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-item active" data-target="overview-section" data-title="My Health Overview">
+                <i data-lucide="layout-dashboard"></i>
+                <span>My Health Overview</span>
+            </div>
+            <div class="nav-item" data-target="appointments-section" data-title="My Appointments">
+                <i data-lucide="calendar"></i>
+                <span>My Appointments</span>
+            </div>
+            <div class="nav-item" data-target="ai-assistant-section" data-title="AI Health Assistant">
+                <i data-lucide="sparkles"></i>
+                <span>AI Health Assistant</span>
+            </div>
+            <div class="nav-item" data-target="book-now-section" data-title="Book Appointment">
+                <i data-lucide="plus-circle"></i>
+                <span>Book Appointment</span>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="nav-item logout-item" id="logout-btn">
+                <i data-lucide="log-out"></i>
+                <span>Sign Out</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="hamburger-btn" id="hamburger-btn" onclick="openSidebar()">
+                    <i data-lucide="menu"></i>
+                </button>
+                <h1 id="page-title">My Health Overview</h1>
+            </div>
+
+            <div class="topbar-right">
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="user-name" id="display-name">Loading...</span>
+                        <span class="user-role">Patient Portal</span>
+                    </div>
+                    <div class="avatar" id="user-avatar">P</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="page-content">
+
+            <!-- OVERVIEW SECTION -->
+            <section id="overview-section" class="content-section active">
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Total Consultations</span>
+                            <div class="metric-icon success"><i data-lucide="stethoscope"></i></div>
+                        </div>
+                        <div class="metric-value" id="stats-total-visits">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Next Appointment</span>
+                            <div class="metric-icon primary"><i data-lucide="calendar"></i></div>
+                        </div>
+                        <div class="metric-value" id="stats-next-appt" style="font-size: 1.2rem; font-weight: 600;">None
+                            Scheduled</div>
+                    </div>
+                </div>
+
+                <div class="table-container" style="margin-top: 2rem;">
+                    <div class="table-header">
+                        <h3 class="chart-title">Recent Medical History</h3>
+                    </div>
+                    <div style="overflow-x: auto;" class="desktop-only">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Doctor</th>
+                                    <th>Diagnosis</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body">
+                                <tr>
+                                    <td colspan="4" class="empty-state">No history found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="history-card-grid" class="staff-card-grid mobile-only"></div>
+                </div>
+            </section>
+
+            <!-- APPOINTMENTS SECTION -->
+            <section id="appointments-section" class="content-section">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="chart-title">Upcoming Appointments</h3>
+                    </div>
+                    <div style="overflow-x: auto;" class="desktop-only">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Doctor</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appts-table-body">
+                                <tr>
+                                    <td colspan="4" class="empty-state">No upcoming appointments.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="appts-card-grid" class="staff-card-grid mobile-only"></div>
+                </div>
+            </section>
+
+            <!-- AI ASSISTANT SECTION -->
+            <section id="ai-assistant-section" class="content-section">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="header-main">
+                            <h3 class="chart-title">AI Health Assistant</h3>
+                            <span class="status-indicator-pill active" style="margin-left: 1rem;">Health Context
+                                Aware</span>
+                        </div>
+                    </div>
+
+                    <div class="ai-consultant-container" style="border: none; border-radius: 0;">
+                        <div class="ai-chat-messages" id="ai-chat-messages"
+                            style="height: 450px; border-bottom: 1px solid #e2e8f0;">
+                            <div class="chat-bubble bubble-ai">
+                                Hello <span class="patient-name-placeholder">...</span>! I am your AI Health Assistant.
+                                I can help explain your prescriptions, medications, or answer general health questions
+                                based on your records. How can I help you today?
+                            </div>
+                        </div>
+
+                        <div class="ai-chat-input-area"
+                            style="padding: 1.25rem; display: flex; gap: 1rem; background: #f8fafc;">
+                            <input type="text" id="ai-input" placeholder="Ask about your diagnosis or medicines..."
+                                style="flex:1; border: 2px solid #e2e8f0; padding: 0.75rem 1rem; border-radius: 12px; outline: none; transition: border-color 0.2s;"
+                                onfocus="this.style.borderColor='var(--primary)'"
+                                onblur="this.style.borderColor='#e2e8f0'">
+                            <button class="btn btn-primary btn-sm" onclick="askAi()" style="margin:0; height: auto;">
+                                <i data-lucide="send"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel"
+                    style="margin-top: 2rem; padding: 1.5rem; display: flex; align-items: center; gap: 1.5rem;">
+                    <div class="banner-icon dr-gradient"
+                        style="color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="info"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin:0;">Personalized Insights</h4>
+                        <p class="text-muted" style="margin: 0.25rem 0 0; font-size: 0.9rem;">The AI analyzes your
+                            specific medical history from this clinic to give relevant answers.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- BOOK NOW SECTION -->
+            <section id="book-now-section" class="content-section">
+                <div class="booking-card">
+                    <!-- Left: Form -->
+                    <div class="booking-form-side">
+                        <div class="booking-form-header">
+                            <h3>Book Your Appointment</h3>
+                            <p>Select a specialist and your preferred time for a consultation.</p>
+                        </div>
+
+                        <form id="book-form">
+                            <div class="form-group" style="margin-bottom: 1.5rem;">
+                                <label class="form-label">Select Specialist</label>
+                                <div class="input-icon-wrapper">
+                                    <i data-lucide="stethoscope" class="input-icon"></i>
+                                    <div class="custom-select-container" id="doctor-select-container">
+                                        <div class="custom-select-trigger" id="doctor-select-trigger">
+                                            <span>Choose a doctor...</span>
+                                            <i data-lucide="chevron-down" class="select-chevron"></i>
+                                        </div>
+                                        <div class="custom-select-options">
+                                            <div class="custom-select-search">
+                                                <input type="text" placeholder="Search doctors..." class="form-input">
+                                            </div>
+                                            <div class="options-list" id="doctor-options-list">
+                                                <!-- Populated by JS -->
+                                            </div>
+                                        </div>
+                                        <select id="select-doctor" style="display:none;" class="form-input"
+                                            required></select>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 2rem;">
+                                <label class="form-label">Preferred Time</label>
+                                <div class="input-icon-wrapper">
+                                    <i data-lucide="clock" class="input-icon"></i>
+                                    <input type="time" id="appt-time" class="form-input" required
+                                        style="padding-left: 2.75rem;">
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                                <i data-lucide="calendar-check"></i> Request Appointment Slot
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Right: Patient Info Panel -->
+                    <div class="booking-info-side">
+                        <h4 style="font-weight: 700;">Clinical Dashboard</h4>
+
+                        <div class="info-banner">
+                            <div class="info-banner-icon"><i data-lucide="calendar"></i></div>
+                            <div class="info-banner-content">
+                                <h4>Instant Booking</h4>
+                                <p>Your request is sent directly to the clinic staff.</p>
+                            </div>
+                        </div>
+
+                        <div class="info-banner">
+                            <div class="info-banner-icon" style="background: #F0F9FF; color: #0369A1;"><i
+                                    data-lucide="bell"></i></div>
+                            <div class="info-banner-content">
+                                <h4>Notifications</h4>
+                                <p>View status updates in "My Appointments".</p>
+                            </div>
+                        </div>
+
+                        <div class="info-banner">
+                            <div class="info-banner-icon" style="background: #FDF2F8; color: #BE185D;"><i
+                                    data-lucide="heart"></i></div>
+                            <div class="info-banner-content">
+                                <h4>Health First</h4>
+                                <p>Get AI insights on your records after the visit.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+        </div> <!-- End page-content -->
+    </main>
+
+    <!-- Scripts -->
+    <script type="module" src="./js/patient.js"></script>
+    <script>
+        window.openSidebar = () => {
+            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('sidebar-overlay').classList.add('active');
+        };
+        window.closeSidebar = () => {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebar-overlay').classList.remove('active');
+        };
+    </script>
 </body>
 
 </html>

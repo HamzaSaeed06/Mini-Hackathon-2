@@ -4,32 +4,339 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Clinic Management - Receptionist Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Receptionist Dashboard - CareSync AI</title>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="../css/style.css">
-    <style>
-        .dashboard-body {
-            padding: 2rem;
-        }
-
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/dashboard.css">
 </head>
 
-<body class="dashboard-body bg-light-blue">
-    <div class="dashboard-header">
-        <h1>Receptionist Dashboard</h1>
-        <button id="logout-btn" class="btn btn-primary" onclick="window.location.href='../index.html'">Logout</button>
-    </div>
-    <div class="glass-panel" style="padding: 2rem;">
-        <h2>Welcome to the Receptionist Portal</h2>
-        <p>This is a placeholder for the Receptionist Dashboard.</p>
-    </div>
+<body class="bg-light-blue">
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <span class="brand-icon" style="color: var(--primary);"><i data-lucide="users"></i></span>
+                <span>CareSync Reception</span>
+            </div>
+            <!-- Close button for mobile -->
+            <button class="sidebar-close-btn" id="sidebar-close-btn" onclick="closeSidebar()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-item active" data-target="overview-section" data-title="Queue Overview">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Queue Overview</span>
+            </div>
+            <div class="nav-item" data-target="register-patient-section" data-title="Register New Patient">
+                <i data-lucide="user-plus"></i>
+                <span>Register Patient</span>
+            </div>
+            <div class="nav-item" data-target="book-appointment-section" data-title="Book Appointment">
+                <i data-lucide="calendar-plus"></i>
+                <span>Book Appointment</span>
+            </div>
+            <div class="nav-item" data-target="patients-list-section" data-title="Patient Directory">
+                <i data-lucide="contact-2"></i>
+                <span>Patient Directory</span>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="nav-item logout-item" id="logout-btn">
+                <i data-lucide="log-out"></i>
+                <span>Sign Out</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="hamburger-btn" id="hamburger-btn" onclick="openSidebar()">
+                    <i data-lucide="menu"></i>
+                </button>
+                <h1 id="page-title">Queue Overview</h1>
+            </div>
+
+            <div class="topbar-right">
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="user-name" id="display-name">Loading...</span>
+                        <span class="user-role">Receptionist Portal</span>
+                    </div>
+                    <div class="avatar" id="user-avatar">R</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="page-content">
+
+            <!-- OVERVIEW SECTION -->
+            <section id="overview-section" class="content-section active">
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Today's Registrations</span>
+                            <div class="metric-icon success"><i data-lucide="user-plus"></i></div>
+                        </div>
+                        <div class="metric-value" id="stats-new-patients">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Queue Count</span>
+                            <div class="metric-icon warning"><i data-lucide="list-ordered"></i></div>
+                        </div>
+                        <div class="metric-value" id="stats-queue">0</div>
+                    </div>
+                </div>
+
+                <div class="table-container" style="margin-top: 2rem;">
+                    <div class="table-header">
+                        <h3 class="chart-title">Current Patient Queue</h3>
+                    </div>
+                    <div style="overflow-x: auto;" class="desktop-only">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Assigned Doctor</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="queue-table-body">
+                                <tr>
+                                    <td colspan="4" class="empty-state">Loading queue...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="queue-card-grid" class="staff-card-grid mobile-only"></div>
+                </div>
+            </section>
+
+            <!-- REGISTER PATIENT SECTION -->
+            <section id="register-patient-section" class="content-section">
+                <div class="glass-panel" style="max-width: 700px; margin: 0 auto; padding: 2.5rem;">
+                    <h3 class="chart-title" style="margin-bottom: 2rem;">Register New Patient</h3>
+                    <form id="register-patient-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Full Name</label>
+                                <div class="input-icon-wrapper">
+                                    <i data-lucide="user" class="input-icon"></i>
+                                    <input type="text" id="patient-name" class="form-input"
+                                        placeholder="Enter patient name" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email Address</label>
+                                <div class="input-icon-wrapper">
+                                    <i data-lucide="mail" class="input-icon"></i>
+                                    <input type="email" id="patient-email" class="form-input"
+                                        placeholder="Email for records" required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Age</label>
+                                <div class="input-icon-wrapper">
+                                    <i data-lucide="hash" class="input-icon"></i>
+                                    <input type="number" id="patient-age" class="form-input" placeholder="e.g. 25"
+                                        required>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Gender</label>
+                                <div class="input-icon-wrapper">
+                                    <i data-lucide="users" class="input-icon"></i>
+                                    <select id="patient-gender" class="form-input" required>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group" style="grid-column: span 2;">
+                                <label class="form-label">Temporary Password</label>
+                                <div class="input-icon-wrapper">
+                                    <i data-lucide="lock" class="input-icon"></i>
+                                    <input type="text" id="patient-password" class="form-input" value="Patient123"
+                                        readonly>
+                                </div>
+                                <p class="text-muted" style="font-size: 0.75rem; margin-top: 0.5rem;">Patients can
+                                    change this on first login.</p>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="margin-top: 2rem; width: 100%;">
+                            <i data-lucide="user-check"></i> Complete Registration
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- BOOK APPOINTMENT SECTION -->
+            <section id="book-appointment-section" class="content-section">
+                <div class="booking-card">
+                    <!-- Left: Form -->
+                    <div class="booking-form-side">
+                        <div class="booking-form-header">
+                            <h3>Schedule Appointment</h3>
+                            <p>Assign a patient to an available doctor and time slot.</p>
+                        </div>
+
+                        <form id="book-appointment-form">
+                            <div class="form-group" style="margin-bottom: 1.5rem;">
+                                <label class="form-label">Select Patient</label>
+                                <div class="input-icon-wrapper">
+                                    <i data-lucide="user" class="input-icon"></i>
+                                    <div class="custom-select-container" id="patient-select-container">
+                                        <div class="custom-select-trigger" id="patient-select-trigger">
+                                            <span>Choose a patient...</span>
+                                            <i data-lucide="chevron-down" class="select-chevron"></i>
+                                        </div>
+                                        <div class="custom-select-options">
+                                            <div class="custom-select-search">
+                                                <input type="text" placeholder="Search patients...">
+                                            </div>
+                                            <div class="options-list" id="patient-options-list">
+                                                <!-- Populated by JS -->
+                                            </div>
+                                        </div>
+                                        <select id="select-patient" style="display:none;" required></select>
+                                    </div>
+                                </div>
+                                <span class="form-hint">Only active patients appear in this list.</span>
+                            </div>
+
+                            <div class="form-grid" style="margin-bottom: 1.5rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Select Specialist</label>
+                                    <div class="input-icon-wrapper">
+                                        <i data-lucide="stethoscope" class="input-icon"></i>
+                                        <div class="custom-select-container" id="doctor-select-container">
+                                            <div class="custom-select-trigger" id="doctor-select-trigger">
+                                                <span>Choose a doctor...</span>
+                                                <i data-lucide="chevron-down" class="select-chevron"></i>
+                                            </div>
+                                            <div class="custom-select-options">
+                                                <div class="custom-select-search">
+                                                    <input type="text" placeholder="Search doctors...">
+                                                </div>
+                                                <div class="options-list" id="doctor-options-list">
+                                                    <!-- Populated by JS -->
+                                                </div>
+                                            </div>
+                                            <select id="select-doctor" style="display:none;" required></select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Appointment Time</label>
+                                    <div class="input-icon-wrapper">
+                                        <i data-lucide="clock" class="input-icon"></i>
+                                        <input type="time" id="appointment-time" class="form-input" required
+                                            style="padding-left: 2.75rem;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" style="margin-top: 1rem; width: 100%;">
+                                <i data-lucide="calendar-plus"></i> Confirm & Add to Queue
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Right: Info Panel -->
+                    <div class="booking-info-side">
+                        <h4 style="font-weight: 700;">Booking Guidelines</h4>
+
+                        <div class="info-banner">
+                            <div class="info-banner-icon"><i data-lucide="info"></i></div>
+                            <div class="info-banner-content">
+                                <h4>Real-time Tracking</h4>
+                                <p>Appointments are instantly visible to doctors.</p>
+                            </div>
+                        </div>
+
+                        <div class="info-banner">
+                            <div class="info-banner-icon" style="background: #FFF7ED; color: #C2410C;"><i
+                                    data-lucide="alert-circle"></i></div>
+                            <div class="info-banner-content">
+                                <h4>Conflict Check</h4>
+                                <p>Verify doctor availability before confirming.</p>
+                            </div>
+                        </div>
+
+                        <div class="info-banner">
+                            <div class="info-banner-icon" style="background: #F0F9FF; color: #0369A1;"><i
+                                    data-lucide="help-circle"></i></div>
+                            <div class="info-banner-content">
+                                <h4>Need Help?</h4>
+                                <p>Contact Admin for schedule resets.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PATIENT DIRECTORY -->
+            <section id="patients-list-section" class="content-section">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="header-main">
+                            <h3 class="chart-title">Patient Directory</h3>
+                            <div class="search-box-wrapper">
+                                <i data-lucide="search"></i>
+                                <input type="text" placeholder="Search by name..." class="search-input"
+                                    id="patient-search">
+                            </div>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;" class="desktop-only">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Joined</th>
+                                    <th>Details</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patients-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div id="patients-card-grid" class="staff-card-grid mobile-only"></div>
+                </div>
+            </section>
+
+        </div> <!-- End page-content -->
+    </main>
+
+    <!-- Scripts -->
+    <script type="module" src="./js/reception.js"></script>
+    <script>
+        window.openSidebar = () => {
+            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('sidebar-overlay').classList.add('active');
+        };
+        window.closeSidebar = () => {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebar-overlay').classList.remove('active');
+        };
+    </script>
 </body>
 
 </html>

@@ -4,32 +4,269 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Clinic Management - Doctor Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <title>Doctor Dashboard - CareSync AI</title>
+    <!-- Google Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="../css/style.css">
-    <style>
-        .dashboard-body {
-            padding: 2rem;
-        }
-
-        .dashboard-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
-    </style>
+    <link rel="stylesheet" href="../css/dashboard.css">
 </head>
 
-<body class="dashboard-body bg-light-blue">
-    <div class="dashboard-header">
-        <h1>Doctor Dashboard</h1>
-        <button id="logout-btn" class="btn btn-primary" onclick="window.location.href='../index.html'">Logout</button>
+<body class="bg-light-blue">
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <span class="brand-icon" style="color: var(--primary);"><i data-lucide="stethoscope"></i></span>
+                <span>CareSync Doctor</span>
+            </div>
+            <!-- Close button for mobile -->
+            <button class="sidebar-close-btn" id="sidebar-close-btn" onclick="closeSidebar()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-item active" data-target="appointments-section" data-title="Appointments Today">
+                <i data-lucide="calendar-check"></i>
+                <span>Appointments</span>
+            </div>
+            <div class="nav-item" data-target="patients-history-section" data-title="Patient Records">
+                <i data-lucide="history"></i>
+                <span>Medical History</span>
+            </div>
+            <div class="nav-item" data-target="ai-diagnosis-section" data-title="AI Medical Consultant">
+                <i data-lucide="brain-circuit"></i>
+                <span>AI Diagnosis</span>
+            </div>
+            <div class="nav-item" data-target="stats-section" data-title="My Performance">
+                <i data-lucide="bar-chart-3"></i>
+                <span>My Performance</span>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="nav-item logout-item" id="logout-btn">
+                <i data-lucide="log-out"></i>
+                <span>Sign Out</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="hamburger-btn" id="hamburger-btn" onclick="openSidebar()">
+                    <i data-lucide="menu"></i>
+                </button>
+                <h1 id="page-title">Appointments Today</h1>
+            </div>
+
+            <div class="topbar-right">
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="user-name" id="display-name">Loading...</span>
+                        <span class="user-role">Doctor Portal</span>
+                    </div>
+                    <div class="avatar" id="user-avatar">D</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="page-content">
+
+            <!-- APPOINTMENTS SECTION -->
+            <section id="appointments-section" class="content-section active">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="header-main">
+                            <h3 class="chart-title">Upcoming Appointments</h3>
+                            <div class="search-box-wrapper">
+                                <i data-lucide="search"></i>
+                                <input type="text" placeholder="Search patient..." class="search-input"
+                                    id="appointment-search" oninput="filterAppointments()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Table -->
+                    <div style="overflow-x: auto;" class="desktop-only">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointments-table-body">
+                                <tr>
+                                    <td colspan="4" class="empty-state">Loading appointments...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Cards -->
+                    <div id="appointments-card-grid" class="staff-card-grid mobile-only">
+                        <p class="empty-state">Loading appointments...</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PATIENT HISTORY SECTION -->
+            <section id="patients-history-section" class="content-section">
+                <div class="table-container">
+                    <div class="table-header">
+                        <h3 class="chart-title">Patient Records</h3>
+                    </div>
+                    <div style="overflow-x: auto;" class="desktop-only">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Last Visit</th>
+                                    <th>History</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="history-table-body">
+                                <!-- Data injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            <!-- AI CONSULTANT SECTION -->
+            <section id="ai-diagnosis-section" class="content-section">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="header-main">
+                            <h3 class="chart-title">AI Medical Consultant</h3>
+                            <span class="status-indicator-pill active" style="margin-left: 1rem;">Live Assist</span>
+                        </div>
+                    </div>
+
+                    <div class="ai-consultant-container" style="border: none; border-radius: 0;">
+                        <div class="ai-chat-messages" id="ai-chat-messages"
+                            style="height: 400px; border-bottom: 1px solid #e2e8f0;">
+                            <div class="chat-bubble bubble-ai">
+                                Hello Dr. <span class="dr-name-placeholder">...</span>! I'm your AI Medical Assistant.
+                                How can I help you with a diagnosis today?
+                            </div>
+                        </div>
+
+                        <div class="ai-chat-input-area"
+                            style="padding: 1.25rem; display: flex; gap: 1rem; background: #f8fafc;">
+                            <input type="text" id="symptoms-input"
+                                placeholder="Type symptoms or patient observations..."
+                                style="flex:1; border: 2px solid #e2e8f0; padding: 0.75rem 1rem; border-radius: 12px; outline: none; transition: border-color 0.2s;"
+                                onfocus="this.style.borderColor='var(--primary)'"
+                                onblur="this.style.borderColor='#e2e8f0'">
+                            <button class="btn btn-primary btn-sm" id="analyze-ai-btn" onclick="analyzeSymptoms()"
+                                style="margin:0; height: auto;">
+                                <i data-lucide="sparkles"></i>
+                                <span>Analyze</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="glass-panel"
+                    style="margin-top: 2rem; padding: 1.5rem; display: flex; align-items: center; gap: 1.5rem;">
+                    <div class="banner-icon dr-gradient"
+                        style="color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="info"></i>
+                    </div>
+                    <div>
+                        <h4 style="margin:0;">Pro Tip: Specificity Matters</h4>
+                        <p class="text-muted" style="margin: 0.25rem 0 0; font-size: 0.9rem;">The more detail you
+                            provide about symptoms and duration, the more accurate the AI suggestions will be.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STATS SECTION -->
+            <section id="stats-section" class="content-section">
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Today's Appointments</span>
+                            <div class="metric-icon success"><i data-lucide="calendar"></i></div>
+                        </div>
+                        <div class="metric-value" id="stats-today">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Monthly Consultations</span>
+                            <div class="metric-icon warning"><i data-lucide="users"></i></div>
+                        </div>
+                        <div class="metric-value" id="stats-monthly">0</div>
+                    </div>
+                </div>
+            </section>
+
+        </div> <!-- End page-content -->
+    </main> <!-- End main-content -->
+
+    <!-- Diagnosis Modal -->
+    <div class="modal-overlay" id="diagnosis-modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3>Process Appointment</h3>
+                <button onclick="closeModal('diagnosis-modal')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body">
+                <form id="diagnosis-form">
+                    <input type="hidden" id="active-appt-id">
+                    <div class="form-group">
+                        <label>Physical Findings / Symptoms</label>
+                        <textarea id="finding-text" placeholder="Observations..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>AI Rapid Assist</label>
+                        <button type="button" class="btn-sm" onclick="rapidAiAssist()">Use AI to suggest
+                            diagnosis</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Diagnosis</label>
+                        <input type="text" id="diagnosis-input" placeholder="Final Diagnosis">
+                    </div>
+                    <div class="form-group">
+                        <label>Medicines (Separate by comma)</label>
+                        <input type="text" id="medicines-input" placeholder="Panadol, Amoxicillin...">
+                    </div>
+                    <button type="button" class="btn-primary w-full" style="margin-top: 1rem;"
+                        onclick="saveDiagnosis()">Complete & Generate Prescription</button>
+                </form>
+            </div>
+        </div>
     </div>
-    <div class="glass-panel" style="padding: 2rem;">
-        <h2>Welcome to the Doctor Portal</h2>
-        <p>This is a placeholder for the Doctor Dashboard.</p>
-    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="./js/doctor.js"></script>
+    <script>
+        // Inline layout helpers
+        window.openSidebar = () => {
+            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('sidebar-overlay').classList.add('active');
+        };
+        window.closeSidebar = () => {
+            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebar-overlay').classList.remove('active');
+        };
+    </script>
 </body>
 
 </html>
