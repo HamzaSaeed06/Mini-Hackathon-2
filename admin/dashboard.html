@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard | CareSync System</title>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body class="dashboard-layout">
+
+    <!-- Mobile Sidebar Overlay -->
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <span class="brand-icon"><i data-lucide="shield-check"></i></span>
+                <span>CareSync Admin</span>
+            </div>
+            <!-- Close button for mobile -->
+            <button class="sidebar-close-btn" id="sidebar-close-btn" onclick="closeSidebar()">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="nav-item active" data-target="overview-section" data-title="Dashboard Overview">
+                <i data-lucide="layout-dashboard"></i>
+                <span>Overview</span>
+            </div>
+            <div class="nav-item" data-target="doctors-section" data-title="Manage Doctors">
+                <i data-lucide="stethoscope"></i>
+                <span>Manage Doctors</span>
+            </div>
+            <div class="nav-item" data-target="receptionists-section" data-title="Manage Receptionists">
+                <i data-lucide="users"></i>
+                <span>Receptionists</span>
+            </div>
+            <div class="nav-item" data-target="patients-section" data-title="Manage Patients">
+                <i data-lucide="user-plus"></i>
+                <span>Patients</span>
+            </div>
+            <div class="nav-item" data-target="subscriptions-section" data-title="Subscription Plans">
+                <i data-lucide="credit-card"></i>
+                <span>Subscriptions</span>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="nav-item logout-item" id="logout-btn">
+                <i data-lucide="log-out"></i>
+                <span>Sign Out</span>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+
+        <!-- Topbar -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <!-- Hamburger Menu (Mobile only) -->
+                <button class="hamburger-btn" id="hamburger-btn" onclick="openSidebar()">
+                    <i data-lucide="menu"></i>
+                </button>
+                <h1 id="page-title">Dashboard Overview</h1>
+            </div>
+
+            <div class="topbar-right">
+                <div class="user-profile">
+                    <div class="user-info">
+                        <span class="user-name" id="display-name">Loading...</span>
+                        <span class="user-role">System Admin</span>
+                    </div>
+                    <div class="avatar" id="user-avatar">A</div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="page-content">
+
+            <!-- OVERVIEW SECTION -->
+            <section id="overview-section" class="content-section active">
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Total Patients</span>
+                            <div class="metric-icon"><i data-lucide="users"></i></div>
+                        </div>
+                        <div class="metric-value" id="stat-patients">0</div>
+                        <div class="metric-trend text-success"><i data-lucide="trending-up"></i> <span
+                                id="trend-patients">+0%</span> vs last month</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Total Doctors</span>
+                            <div class="metric-icon success"><i data-lucide="stethoscope"></i></div>
+                        </div>
+                        <div class="metric-value" id="stat-doctors">0</div>
+                        <div class="metric-trend text-success"><i data-lucide="trending-up"></i> <span
+                                id="trend-doctors">Active</span></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Appointments (Month)</span>
+                            <div class="metric-icon warning"><i data-lucide="calendar-check"></i></div>
+                        </div>
+                        <div class="metric-value" id="stat-appointments">0</div>
+                        <div class="metric-trend text-success"><i data-lucide="trending-up"></i> <span
+                                id="trend-appts">+0%</span> vs last month</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Simulated Revenue</span>
+                            <div class="metric-icon revenue"><i data-lucide="dollar-sign"></i></div>
+                        </div>
+                        <div class="metric-value" id="stat-revenue">$0</div>
+                        <div class="metric-trend text-success"><i data-lucide="trending-up"></i> Steady</div>
+                    </div>
+                </div>
+
+                <div class="charts-grid">
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Patient Intake (6 Months)</h3>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="patientChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Appointment Status</h3>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="appointmentChart"></canvas>
+                        </div>
+                    </div>
+                    <!-- New Diagnosis Metric -->
+                    <div class="chart-card">
+                        <div class="chart-header">
+                            <h3 class="chart-title">Most Common Diagnoses</h3>
+                        </div>
+                        <div class="chart-body">
+                            <ul id="diagnosis-list" class="diagnosis-analytics-list">
+                                <li class="empty-state">No diagnosis data yet.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SaaS Simulation Banner -->
+                <div class="upgrade-banner">
+                    <div class="banner-content">
+                        <div class="banner-icon"><i data-lucide="sparkles"></i></div>
+                        <div class="banner-text">
+                            <h3>Unlock Advanced AI Diagnostics</h3>
+                            <p>Upgrade to the Pro Plan to enable predictive analytics and Urdu AI explanations.</p>
+                        </div>
+                    </div>
+                    <button class="btn-pro-upgrade" onclick="simulateUpgrade()">Upgrade to Pro</button>
+                </div>
+            </section>
+
+            <!-- DOCTORS SECTION -->
+            <section id="doctors-section" class="content-section">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="header-main">
+                            <h3 class="chart-title">Registered Doctors</h3>
+                            <div class="search-box-wrapper">
+                                <i data-lucide="search"></i>
+                                <input type="text" id="doctor-search" class="search-input"
+                                    placeholder="Search by name or email..." oninput="filterTable('doctors')">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="openModal('add-staff-modal', 'doctor')">
+                            <i data-lucide="plus"></i> Add Doctor
+                        </button>
+                    </div>
+                    <div style="overflow-x: auto;" class="desktop-only">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Joined</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="doctors-table-body">
+                                <tr>
+                                    <td colspan="5" class="empty-state">No doctors added yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Card View -->
+                    <div id="doctors-card-grid" class="staff-card-grid mobile-only">
+                        <!-- Cards will be injected by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- RECEPTIONISTS SECTION -->
+            <section id="receptionists-section" class="content-section">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="header-main">
+                            <h3 class="chart-title">Registered Receptionists</h3>
+                            <div class="search-box-wrapper">
+                                <i data-lucide="search"></i>
+                                <input type="text" id="receptionist-search" class="search-input"
+                                    placeholder="Search receptionists..." oninput="filterTable('receptionists')">
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-sm" onclick="openModal('add-staff-modal', 'receptionist')">
+                            <i data-lucide="plus"></i> Add Receptionist
+                        </button>
+                    </div>
+                    <div style="overflow-x: auto;" class="desktop-only">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Joined</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="receptionists-table-body">
+                                <tr>
+                                    <td colspan="5" class="empty-state">No receptionists added yet.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Mobile Card View -->
+                    <div id="receptionists-card-grid" class="staff-card-grid mobile-only">
+                        <!-- Cards will be injected by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- PATIENTS SECTION -->
+            <section id="patients-section" class="content-section">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="header-main">
+                            <h3 class="chart-title">Patient Records</h3>
+                            <div class="search-box-wrapper">
+                                <i data-lucide="search"></i>
+                                <input type="text" id="patient-search" class="search-input"
+                                    placeholder="Search patients..." oninput="filterTable('patients')">
+                            </div>
+                        </div>
+                    </div>
+                    <div style="overflow-x: auto;" class="desktop-only">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Email</th>
+                                    <th>Joined</th>
+                                    <th>Health Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="patients-table-body">
+                                <tr>
+                                    <td colspan="5" class="empty-state">No patient records found.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div id="patients-card-grid" class="staff-card-grid mobile-only">
+                        <!-- Patient cards injected here -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- SUBSCRIPTIONS SECTION -->
+            <section id="subscriptions-section" class="content-section">
+                <div class="plans-grid">
+                    <div class="plan-card plan-free">
+                        <div class="plan-badge current">Current Plan</div>
+                        <h3 class="plan-name">Basic Clinic</h3>
+                        <div class="plan-price">$0 <span>/month</span></div>
+                        <ul class="plan-features">
+                            <li class="included"><i data-lucide="check-circle-2"></i> Up to 500 Patients</li>
+                            <li class="included"><i data-lucide="check-circle-2"></i> Basic Appointment Tracking</li>
+                            <li class="excluded"><i data-lucide="x-circle"></i> AI Diagnostic Features</li>
+                            <li class="excluded"><i data-lucide="x-circle"></i> Advanced Analytics</li>
+                        </ul>
+                    </div>
+                    <div class="plan-card plan-pro">
+                        <div class="plan-badge">Best Value</div>
+                        <h3 class="plan-name">Pro Enterprise</h3>
+                        <div class="plan-price">$199 <span>/month</span></div>
+                        <ul class="plan-features">
+                            <li class="included pro"><i data-lucide="check-circle-2"></i> Unlimited Patients</li>
+                            <li class="included pro"><i data-lucide="check-circle-2"></i> Advanced Analytics & Reports
+                            </li>
+                            <li class="included pro"><i data-lucide="check-circle-2"></i> Smart AI Diagnostics</li>
+                            <li class="included pro"><i data-lucide="check-circle-2"></i> Priority 24/7 Support</li>
+                        </ul>
+                        <button class="btn btn-primary" style="width: 100%; margin-top: 1.5rem;"
+                            onclick="simulateUpgrade()">
+                            Simulate Upgrade →
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Add Staff Modal -->
+    <div class="modal-overlay" id="add-staff-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-staff-title">Add New Staff</h3>
+                <span class="modal-close" onclick="closeModal('add-staff-modal')"><i data-lucide="x"></i></span>
+            </div>
+            <div class="modal-body">
+                <form id="add-staff-form">
+                    <input type="hidden" id="staff-role-input">
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <div class="input-icon-wrapper">
+                            <i data-lucide="user" class="input-icon"></i>
+                            <input type="text" id="staff-name" class="form-input" placeholder="Enter full name"
+                                required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email Address</label>
+                        <div class="input-icon-wrapper">
+                            <i data-lucide="mail" class="input-icon"></i>
+                            <input type="email" id="staff-email" class="form-input" placeholder="name@clinic.com"
+                                required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Temporary Password</label>
+                        <div class="input-icon-wrapper">
+                            <i data-lucide="key" class="input-icon"></i>
+                            <input type="password" id="staff-password" class="form-input" placeholder="Min 8 characters"
+                                minlength="8" required>
+                        </div>
+                        <p class="form-hint">User will sign in with this password initially.</p>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('add-staff-modal')">Cancel</button>
+                <button class="btn btn-primary btn-sm" id="submit-staff-btn" onclick="submitAddStaff()">
+                    <span class="btn-text">Create Account</span>
+                    <div class="loader-spinner hidden" id="staff-loader"></div>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
+
+    <script>lucide.createIcons();</script>
+    <script type="module" src="./js/admin.js"></script>
+</body>
+
+</html>

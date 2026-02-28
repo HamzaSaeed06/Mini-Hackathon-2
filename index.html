@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Clinic Management & Smart Diagnosis</title>
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="./css/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <div class="auth-wrapper">
+        <!-- Left Side: Form Container -->
+        <div class="auth-form-container">
+            <div class="auth-form-content">
+                <div class="auth-header">
+                    <div class="brand-logo">
+                        <i data-lucide="activity"></i>
+                    </div>
+                    <h2>Welcome to CareSync</h2>
+                    <p>Enter your details to access your account</p>
+                </div>
+
+                <form id="login-form">
+                    <div class="form-group">
+                        <label for="email" class="form-label">Email Address</label>
+                        <div class="input-icon-wrapper">
+                            <i data-lucide="mail" class="input-icon"></i>
+                            <input type="email" id="email" class="form-input" placeholder="name@clinic.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password" class="form-label">Password</label>
+                        <div class="input-icon-wrapper">
+                            <i data-lucide="lock" class="input-icon"></i>
+                            <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+                        </div>
+                    </div>
+
+                    <div class="form-options">
+                        <label class="checkbox-label" for="remember">
+                            <input type="checkbox" id="remember" class="custom-checkbox">
+                            Remember me
+                        </label>
+                        <a href="#" class="font-medium">Forgot password?</a>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" id="login-btn">
+                        <span class="btn-text">Sign In</span>
+                        <i data-lucide="arrow-right" class="btn-icon"></i>
+                        <div class="loader-spinner hidden" id="login-loader"></div>
+                    </button>
+
+                </form>
+
+                <div class="auth-footer">
+                    <p>New Patient? <a href="patient-signup.html" class="font-semibold">Create an account</a></p>
+                    <p style="margin-top: 0.5rem; font-size: 0.8rem;">Staff accounts must be created by the
+                        Administrator.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Side: Hero Image and Context (Hidden on mobile) -->
+        <div class="auth-hero-container">
+            <img src="https://images.unsplash.com/photo-1516549655169-df83a0774514?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
+                alt="Medical Professional" class="hero-image">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <i data-lucide="sparkles" size="16"></i>
+                    AI-Powered Diagnostics
+                </div>
+                <h1>The Future of Healthcare Management.</h1>
+                <p>Streamline your clinical workflows, connect with patients seamlessly, and leverage intelligent
+                    diagnostic support.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Initialize Lucide Icons -->
+    <script>
+        lucide.createIcons();
+    </script>
+
+    <!-- Firebase SDKs -->
+    <script type="module" src="./js/firebase-config.js"></script>
+    <script type="module" src="./js/auth.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup First Admin | CareSync</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+
+<body>
+    <div class="auth-wrapper" style="justify-content: center; align-items: center; background: var(--background);">
+        <div class="auth-form-content"
+            style="background: var(--surface); padding: 2.5rem; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);">
+
+            <div class="auth-header">
+                <div class="brand-logo" style="margin: 0 auto 1.5rem; display: flex;">
+                    <i data-lucide="shield-check"></i>
+                </div>
+                <h2 style="text-align: center;">System Initialization</h2>
+                <p style="text-align: center; margin-bottom: 2rem;">Create the master admin account.</p>
+                <div
+                    style="background: var(--warning); color: #fff; padding: 0.75rem; border-radius: var(--radius-sm); font-size: 0.85rem; margin-bottom: 1.5rem; text-align: center;">
+                    <i data-lucide="alert-triangle"
+                        style="width: 16px; height: 16px; vertical-align: middle; margin-right: 4px;"></i>
+                    Delete this file (<code>setup-admin.html</code>) after successful creation!
+                </div>
+            </div>
+
+            <form id="setup-admin-form">
+                <div class="form-group">
+                    <label for="admin-name" class="form-label">Admin Name</label>
+                    <div class="input-icon-wrapper">
+                        <i data-lucide="user" class="input-icon"></i>
+                        <input type="text" id="admin-name" class="form-input" placeholder="Super Admin" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="admin-email" class="form-label">Admin Email</label>
+                    <div class="input-icon-wrapper">
+                        <i data-lucide="mail" class="input-icon"></i>
+                        <input type="email" id="admin-email" class="form-input" placeholder="admin@caresync.com"
+                            required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="admin-password" class="form-label">Secure Password</label>
+                    <div class="input-icon-wrapper">
+                        <i data-lucide="lock" class="input-icon"></i>
+                        <input type="password" id="admin-password" class="form-input" placeholder="Min 10 characters"
+                            required minlength="10">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="setup-btn" style="margin-top: 1.5rem;">
+                    <span class="btn-text">Initialize Admin</span>
+                    <i data-lucide="zap" class="btn-icon"></i>
+                    <div class="loader-spinner hidden" id="setup-loader"></div>
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+    <script>lucide.createIcons();</script>
+
+    <!-- Firebase SDKs -->
+    <script type="module" src="./js/firebase-config.js"></script>
+    <script type="module">
+        import { auth, db } from './js/firebase-config.js';
+        import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+        import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+        const setupForm = document.getElementById('setup-admin-form');
+        const setupBtn = document.getElementById('setup-btn');
+        const setupLoader = document.getElementById('setup-loader');
+
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            const iconName = type === 'success' ? 'check-circle-2' : 'alert-circle';
+            toast.innerHTML = `<i data-lucide="${iconName}"></i><span>${message}</span>`;
+            container.appendChild(toast);
+            lucide.createIcons({ root: toast });
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 400); }, 4000);
+        }
+
+        setupForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('admin-email').value;
+            const password = document.getElementById('admin-password').value;
+            const name = document.getElementById('admin-name').value;
+
+            setupBtn.querySelector('.btn-text').classList.add('hidden');
+            setupBtn.querySelector('.btn-icon').classList.add('hidden');
+            setupLoader.classList.remove('hidden');
+            setupBtn.disabled = true;
+
+            try {
+                // 1. Create Auth
+                const userCred = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCred.user;
+
+                // 2. Set Admin Document
+                await setDoc(doc(db, 'users', user.uid), {
+                    id: user.uid,
+                    name: name,
+                    email: email,
+                    role: 'admin',
+                    createdAt: serverTimestamp()
+                });
+
+                showToast('Admin created! Redirecting to Login...', 'success');
+                setTimeout(() => window.location.href = 'index.html', 2000);
+
+            } catch (error) {
+                showToast(error.message, 'error');
+                setupBtn.querySelector('.btn-text').classList.remove('hidden');
+                setupBtn.querySelector('.btn-icon').classList.remove('hidden');
+                setupLoader.classList.add('hidden');
+                setupBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>
