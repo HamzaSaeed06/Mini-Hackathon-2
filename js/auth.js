@@ -1,5 +1,5 @@
 import { auth, db } from './firebase-config.js';
-import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // DOM Elements
@@ -41,6 +41,45 @@ function showToast(message, type = 'success') {
         setTimeout(() => toast.remove(), 400);
     }, 3000);
 }
+
+// Check if user is already logged in
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        // Show loader if login button exists
+        if (loginBtn && loginLoader) {
+            const btnText = loginBtn.querySelector('.btn-text');
+            const btnIcon = loginBtn.querySelector('.btn-icon');
+            if (btnText) btnText.classList.add('hidden');
+            if (btnIcon) btnIcon.classList.add('hidden');
+            loginLoader.classList.remove('hidden');
+            loginBtn.disabled = true;
+        }
+
+        try {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                const role = userData.role;
+
+                localStorage.setItem('userRole', role);
+                localStorage.setItem('userName', userData.name);
+
+                if (role === 'admin') window.location.href = 'admin/dashboard.html';
+                else if (role === 'doctor') window.location.href = 'doctor/dashboard.html';
+                else if (role === 'receptionist') window.location.href = 'reception/dashboard.html';
+                else if (role === 'patient') window.location.href = 'patient/dashboard.html';
+                else if (loginBtn) resetLoginButton();
+            } else {
+                if (loginBtn) resetLoginButton();
+            }
+        } catch (error) {
+            console.error("Error auto-redirecting:", error);
+            if (loginBtn) resetLoginButton();
+        }
+    }
+});
 
 // Handle Login
 if (loginForm) {

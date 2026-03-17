@@ -1,6 +1,6 @@
 import { auth, db } from './firebase-config.js';
-import { createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { createUserWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const signupForm = document.getElementById('patient-signup-form');
 const nameInput = document.getElementById('name');
@@ -31,6 +31,44 @@ function showToast(message, type = 'success') {
         setTimeout(() => toast.remove(), 400);
     }, 3000);
 }
+
+// Check if user is already logged in
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        if (signupBtn && signupLoader) {
+            const btnText = signupBtn.querySelector('.btn-text');
+            const btnIcon = signupBtn.querySelector('.btn-icon');
+            if (btnText) btnText.classList.add('hidden');
+            if (btnIcon) btnIcon.classList.add('hidden');
+            signupLoader.classList.remove('hidden');
+            signupBtn.disabled = true;
+        }
+
+        try {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                const role = userData.role;
+
+                localStorage.setItem('userRole', role);
+                localStorage.setItem('userName', userData.name);
+
+                if (role === 'admin') window.location.href = 'admin/dashboard.html';
+                else if (role === 'doctor') window.location.href = 'doctor/dashboard.html';
+                else if (role === 'receptionist') window.location.href = 'reception/dashboard.html';
+                else if (role === 'patient') window.location.href = 'patient/dashboard.html';
+                else if (signupBtn) resetSignupButton();
+            } else {
+                if (signupBtn) resetSignupButton();
+            }
+        } catch (error) {
+            console.error("Error auto-redirecting:", error);
+            if (signupBtn) resetSignupButton();
+        }
+    }
+});
 
 if (signupForm) {
     signupForm.addEventListener('submit', async (e) => {
@@ -65,11 +103,13 @@ if (signupForm) {
             const user = userCredential.user;
 
             // Hardcode 'patient' role
+            const randomPal = Math.floor(Math.random() * 6);
             await setDoc(doc(db, 'users', user.uid), {
                 id: user.uid,
                 name: name,
                 email: email,
                 role: 'patient',
+                colorPalette: randomPal,
                 createdAt: serverTimestamp()
             });
 

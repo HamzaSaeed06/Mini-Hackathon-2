@@ -1,0 +1,341 @@
+/* Admin Dashboard — Healthcare Modern palette */
+@import url('../../css/base-dashboard.css');
+
+/* Healthcare Modern: Indigo + Teal */
+:root {
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --primary-light: #eef2ff;
+    --accent: #14b8a6;
+    --background: #f9fafb;
+    --border: #e5e7eb;
+    --text-muted: #6b7280;
+    --shadow-glow: 0 4px 12px 0 rgba(79, 70, 229, 0.12);
+}
+
+/* Admin: No card translate animations, only subtle shadow on hover */
+.metric-card {
+    animation: none !important;
+}
+
+.metric-card:hover {
+    transform: none !important;
+    box-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.06);
+}
+
+/* Admin: Avatars - circular with visible border */
+.user-avatar-sm {
+    border-radius: 50% !important;
+    overflow: hidden;
+    border: 2px solid #d1d5db;
+}
+
+.user-avatar-sm img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* Topbar profile avatar - visible border */
+.topbar .avatar {
+    border: 2px solid #d1d5db;
+}
+
+.topbar .avatar img {
+    border-radius: 50%;
+}
+
+/* Profile dropdown - clean UI, small icon, smooth hover */
+.profile-dropdown-wrapper {
+    position: relative;
+}
+
+.profile-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    min-width: 160px;
+    z-index: 200;
+    padding: 0.375rem;
+    display: none;
+}
+
+.profile-dropdown-menu.open {
+    display: block;
+}
+
+.profile-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 0.8125rem;
+    color: var(--text-main);
+    transition: background 0.2s ease;
+    width: 100%;
+    border: none;
+    background: none;
+    text-align: left;
+}
+
+.profile-dropdown-item:hover {
+    background: var(--background);
+}
+
+.profile-dropdown-item i {
+    width: 14px;
+    height: 14px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* Photo upload modal */
+.photo-upload-modal .modal-body {
+    text-align: center;
+    padding: 2rem 1.5rem;
+}
+
+.photo-preview-wrap {
+    width: 120px;
+    height: 120px;
+    margin: 0 auto 1.5rem;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--background);
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.photo-preview-wrap.has-image {
+    border-color: var(--primary);
+}
+
+.photo-preview-wrap img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.photo-preview-placeholder {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    padding: 1rem;
+}
+
+.photo-upload-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+/* ── Status Pill Button ────────────────────────────── */
+.status-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.status-pill-btn.active {
+    background: #DCFCE7;
+    color: #166534;
+}
+
+.status-pill-btn.inactive {
+    background: #F1F5F9;
+    color: #64748B;
+}
+
+.status-pill-btn:hover {
+    opacity: 0.82;
+}
+
+.status-pill-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.status-pill-btn.active .status-pill-dot {
+    background: #22C55E;
+}
+
+.status-pill-btn.inactive .status-pill-dot {
+    background: #94A3B8;
+}
+
+/* ── Staff Profile Card (Mobile) ──────────────────── */
+.staff-card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding-top: 0.5rem;
+}
+
+.staff-profile-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.staff-profile-card.card-inactive {
+    opacity: 0.72;
+    background: #F8FAFC;
+}
+
+.spc-top {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+}
+
+.spc-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.spc-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.spc-role-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--surface);
+}
+
+.spc-role-badge i,
+.spc-role-badge svg.lucide {
+    width: 11px !important;
+    height: 11px !important;
+}
+
+.spc-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.spc-name {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin: 0 0 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spc-email {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin: 0 0 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spc-joined {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.spc-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.spc-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 10px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.spc-btn.primary {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.spc-btn.danger {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.spc-btn:hover {
+    opacity: 0.82;
+}
+
+.spc-btn i,
+.spc-btn svg.lucide {
+    width: 14px !important;
+    height: 14px !important;
+}
+
+/* Admin: Table actions - Delete first */
+.admin-table-row .table-actions-cell {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-start;
+}
+
+/* Response Fix for Circular Charts and Mobile padding */
+@media (max-width: 768px) {
+    .chart-body {
+        height: 200px !important;
+    }
+    
+    .chart-card {
+        padding: 1.25rem !important;
+    }
+    
+    .staff-card-grid {
+        gap: 0.75rem !important;
+    }
+}

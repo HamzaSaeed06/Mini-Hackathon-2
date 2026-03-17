@@ -1,0 +1,10 @@
+/* Patient Dashboard — imports shared base, then applies patient-specific overrides */
+@import url('../../css/base-dashboard.css');
+
+/* Patient uses Indigo primary */
+:root {
+    --primary: #4F46E5;
+    --primary-hover: #4338CA;
+    --primary-light: #EEF2FF;
+    --shadow-glow: 0 4px 14px 0 rgba(79, 70, 229, 0.18);
+}

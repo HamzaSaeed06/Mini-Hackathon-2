@@ -3,12 +3,18 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <title>Admin Dashboard | CareSync System</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/profile.css">
+    <link rel="stylesheet" href="../css/id-card.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
 <body class="dashboard-layout">
@@ -46,6 +52,14 @@
                 <i data-lucide="user-plus"></i>
                 <span>Patients</span>
             </div>
+            <div class="nav-item" data-target="appointments-section" data-title="All Appointments">
+                <i data-lucide="calendar"></i>
+                <span>Appointments</span>
+            </div>
+            <div class="nav-item" data-target="clinic-settings-section" data-title="Clinic Settings">
+                <i data-lucide="settings"></i>
+                <span>Clinic Settings</span>
+            </div>
             <div class="nav-item" data-target="subscriptions-section" data-title="Subscription Plans">
                 <i data-lucide="credit-card"></i>
                 <span>Subscriptions</span>
@@ -53,6 +67,10 @@
         </nav>
 
         <div class="sidebar-footer">
+            <div class="nav-item" data-target="profile-section" data-title="Admin Profile">
+                <i data-lucide="user-settings"></i>
+                <span>My Profile</span>
+            </div>
             <div class="nav-item logout-item" id="logout-btn">
                 <i data-lucide="log-out"></i>
                 <span>Sign Out</span>
@@ -96,7 +114,7 @@
                             <div class="metric-icon"><i data-lucide="users"></i></div>
                         </div>
                         <div class="metric-value" id="stat-patients">0</div>
-                        <div class="metric-trend text-success"><i data-lucide="trending-up"></i> <span
+                        <div class="metric-trend text-success" id="trend-patients-container"><i data-lucide="trending-up"></i> <span
                                 id="trend-patients">+0%</span> vs last month</div>
                     </div>
                     <div class="metric-card">
@@ -105,7 +123,7 @@
                             <div class="metric-icon success"><i data-lucide="stethoscope"></i></div>
                         </div>
                         <div class="metric-value" id="stat-doctors">0</div>
-                        <div class="metric-trend text-success"><i data-lucide="trending-up"></i> <span
+                        <div class="metric-trend text-success" id="trend-doctors-container"><i data-lucide="trending-up"></i> <span
                                 id="trend-doctors">Active</span></div>
                     </div>
                     <div class="metric-card">
@@ -114,7 +132,7 @@
                             <div class="metric-icon warning"><i data-lucide="calendar-check"></i></div>
                         </div>
                         <div class="metric-value" id="stat-appointments">0</div>
-                        <div class="metric-trend text-success"><i data-lucide="trending-up"></i> <span
+                        <div class="metric-trend text-success" id="trend-appts-container"><i data-lucide="trending-up"></i> <span
                                 id="trend-appts">+0%</span> vs last month</div>
                     </div>
                     <div class="metric-card">
@@ -123,7 +141,7 @@
                             <div class="metric-icon revenue"><i data-lucide="dollar-sign"></i></div>
                         </div>
                         <div class="metric-value" id="stat-revenue">$0</div>
-                        <div class="metric-trend text-success"><i data-lucide="trending-up"></i> Steady</div>
+                        <div class="metric-trend text-success" id="trend-revenue-container"><i data-lucide="trending-up"></i> Steady</div>
                     </div>
                 </div>
 
@@ -186,7 +204,7 @@
                             <i data-lucide="plus"></i> Add Doctor
                         </button>
                     </div>
-                    <div style="overflow-x: auto;" class="desktop-only">
+                    <div class="table-wrapper desktop-only">
                         <table class="data-table">
                             <thead>
                                 <tr>
@@ -209,6 +227,17 @@
                     <div id="doctors-card-grid" class="staff-card-grid mobile-only">
                         <!-- Cards will be injected by JS -->
                     </div>
+
+                    <!-- Pagination Controls -->
+                    <div id="doctors-pagination" class="pagination-controls" style="display: none; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.5rem; padding-bottom: 1rem;">
+                        <button class="btn-action-sm" onclick="changeAdminPage('doctors', -1)">
+                            <i data-lucide="chevron-left"></i> Prev
+                        </button>
+                        <span id="doctors-page-info" style="font-size: 0.9rem; font-weight: 500; color: #64748B;">Page 1 of 1</span>
+                        <button class="btn-action-sm" onclick="changeAdminPage('doctors', 1)">
+                            Next <i data-lucide="chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </section>
 
@@ -228,7 +257,7 @@
                             <i data-lucide="plus"></i> Add Receptionist
                         </button>
                     </div>
-                    <div style="overflow-x: auto;" class="desktop-only">
+                    <div class="table-wrapper desktop-only">
                         <table class="data-table">
                             <thead>
                                 <tr>
@@ -251,6 +280,17 @@
                     <div id="receptionists-card-grid" class="staff-card-grid mobile-only">
                         <!-- Cards will be injected by JS -->
                     </div>
+
+                    <!-- Pagination Controls -->
+                    <div id="receptionists-pagination" class="pagination-controls" style="display: none; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.5rem; padding-bottom: 1rem;">
+                        <button class="btn-action-sm" onclick="changeAdminPage('receptionists', -1)">
+                            <i data-lucide="chevron-left"></i> Prev
+                        </button>
+                        <span id="receptionists-page-info" style="font-size: 0.9rem; font-weight: 500; color: #64748B;">Page 1 of 1</span>
+                        <button class="btn-action-sm" onclick="changeAdminPage('receptionists', 1)">
+                            Next <i data-lucide="chevron-right"></i>
+                        </button>
+                    </div>
                 </div>
             </section>
 
@@ -267,7 +307,7 @@
                             </div>
                         </div>
                     </div>
-                    <div style="overflow-x: auto;" class="desktop-only">
+                    <div class="table-wrapper desktop-only">
                         <table class="data-table">
                             <thead>
                                 <tr>
@@ -288,6 +328,17 @@
 
                     <div id="patients-card-grid" class="staff-card-grid mobile-only">
                         <!-- Patient cards injected here -->
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div id="patients-pagination" class="pagination-controls" style="display: none; justify-content: center; align-items: center; gap: 1rem; margin-top: 1.5rem; padding-bottom: 1rem;">
+                        <button class="btn-action-sm" onclick="changeAdminPage('patients', -1)">
+                            <i data-lucide="chevron-left"></i> Prev
+                        </button>
+                        <span id="patients-page-info" style="font-size: 0.9rem; font-weight: 500; color: #64748B;">Page 1 of 1</span>
+                        <button class="btn-action-sm" onclick="changeAdminPage('patients', 1)">
+                            Next <i data-lucide="chevron-right"></i>
+                        </button>
                     </div>
                 </div>
             </section>
@@ -324,7 +375,140 @@
                     </div>
                 </div>
             </section>
-        </div>
+
+            <!-- APPOINTMENTS SECTION -->
+            <section id="appointments-section" class="content-section">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="header-main">
+                            <h3 class="chart-title">Global Appointment Logs</h3>
+                            <p class="text-muted" style="font-size: 0.8rem;">Monitor all clinic consultations</p>
+                        </div>
+                        <div class="header-actions">
+                            <div class="search-box">
+                                <i data-lucide="search"></i>
+                                <input type="text" id="appt-search" placeholder="Search appointments..." oninput="filterAppointments()">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div style="overflow-x: auto;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Patient</th>
+                                    <th>Doctor</th>
+                                    <th>Date & Time</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="all-appts-table-body">
+                                <tr><td colspan="5" class="empty-state">Loading appointments...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div id="all-appts-pagination" class="pagination-controls" style="display: none; justify-content: center; align-items: center; gap: 1rem; margin: 1.5rem 0; padding-bottom: 1rem;">
+                    </div>
+                </div>
+            </section>
+
+            <!-- CLINIC SETTINGS SECTION -->
+            <section id="clinic-settings-section" class="content-section">
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Shift Configuration</span>
+                            <div class="metric-icon primary"><i data-lucide="clock"></i></div>
+                        </div>
+                        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">Define the working hours for clinic staff.</p>
+                        
+                        <form id="shift-config-form">
+                            <div class="form-group">
+                                <label class="form-label" style="font-size: 0.8rem; font-weight: 600;">Active Shift Mode</label>
+                                <select id="shift-mode-select" class="form-input" style="margin-top: 0.5rem;">
+                                    <option value="8">8 Hours (3 Shifts)</option>
+                                    <option value="12">12 Hours (2 Shifts)</option>
+                                </select>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 1rem;">
+                                <i data-lucide="save"></i> Save Settings
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="metric-card" style="opacity: 0.6; cursor: not-allowed;">
+                        <div class="metric-header">
+                            <span class="metric-title">Advanced Security</span>
+                            <div class="metric-icon success"><i data-lucide="shield-check"></i></div>
+                        </div>
+                        <p class="text-muted" style="font-size: 0.85rem;">Role Management coming soon.</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PROFILE SECTION -->
+            <section id="profile-section" class="content-section">
+                <div class="profile-container">
+                    <div class="profile-card-v2">
+                        <div class="profile-main-wrapper">
+                            <div class="profile-avatar-container">
+                                <div class="profile-avatar-circle" id="profile-avatar-display">
+                                    A
+                                </div>
+                                <button class="btn-edit-avatar" title="Update Profile" onclick="document.getElementById('photo-upload-input').click()">
+                                    <i data-lucide="camera" style="width: 18px;"></i>
+                                </button>
+                                <input type="file" id="photo-upload-input" style="display: none;" accept="image/*" onchange="handlePhotoSelect(event)">
+                            </div>
+
+                            <div class="profile-header-info">
+                                <div class="profile-intro">
+                                    <h2 id="profile-name-display">System Administrator</h2>
+                                    <div class="profile-role-badge">
+                                        <i data-lucide="shield" style="width: 16px; margin-right: 6px;"></i>
+                                        <span id="profile-role-display">Full Access</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="profile-info-grid">
+                                <div class="info-mini-card">
+                                    <div class="mini-card-icon"><i data-lucide="mail"></i></div>
+                                    <div class="mini-card-content">
+                                        <label>Admin Email</label>
+                                        <span id="profile-email-display">admin@caresync.com</span>
+                                    </div>
+                                </div>
+                                <div class="info-mini-card">
+                                    <div class="mini-card-icon"><i data-lucide="fingerprint"></i></div>
+                                    <div class="mini-card-content">
+                                        <label>Admin ID</label>
+                                        <span id="profile-id-display">#ADM-ROOT</span>
+                                    </div>
+                                </div>
+                                <div class="info-mini-card">
+                                    <div class="mini-card-icon"><i data-lucide="settings"></i></div>
+                                    <div class="mini-card-content">
+                                        <label>Privileges</label>
+                                        <span>Full Access (Superuser)</span>
+                                    </div>
+                                </div>
+                                <div class="info-mini-card">
+                                    <div class="mini-card-icon"><i data-lucide="calendar"></i></div>
+                                    <div class="mini-card-content">
+                                        <label>System Joined</label>
+                                        <span id="profile-joined-display">Jan 2024</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div> <!-- End page-content -->
     </main>
 
     <!-- Add Staff Modal -->
@@ -338,28 +522,18 @@
                 <form id="add-staff-form">
                     <input type="hidden" id="staff-role-input">
                     <div class="form-group">
-                        <label class="form-label">Full Name</label>
-                        <div class="input-icon-wrapper">
-                            <i data-lucide="user" class="input-icon"></i>
-                            <input type="text" id="staff-name" class="form-input" placeholder="Enter full name"
-                                required>
-                        </div>
+                        <label class="form-label"><i data-lucide="user" class="input-icon"></i> Full Name</label>
+                        <input type="text" id="staff-name" class="form-input" placeholder="Enter full name" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Email Address</label>
-                        <div class="input-icon-wrapper">
-                            <i data-lucide="mail" class="input-icon"></i>
-                            <input type="email" id="staff-email" class="form-input" placeholder="name@clinic.com"
-                                required>
-                        </div>
+                        <label class="form-label"><i data-lucide="mail" class="input-icon"></i> Email Address</label>
+                        <input type="email" id="staff-email" class="form-input" placeholder="name@clinic.com" required>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Temporary Password</label>
-                        <div class="input-icon-wrapper">
-                            <i data-lucide="key" class="input-icon"></i>
-                            <input type="password" id="staff-password" class="form-input" placeholder="Min 8 characters"
-                                minlength="8" required>
-                        </div>
+                        <label class="form-label"><i data-lucide="key" class="input-icon"></i> Temporary
+                            Password</label>
+                        <input type="password" id="staff-password" class="form-input" placeholder="Min 8 characters"
+                            minlength="8" required>
                         <p class="form-hint">User will sign in with this password initially.</p>
                     </div>
                 </form>
@@ -374,9 +548,57 @@
         </div>
     </div>
 
+
+
+    <!-- Patient Detail Modal -->
+    <div class="modal-overlay" id="patient-detail-modal">
+        <div class="modal-content" style="max-width:420px;">
+            <div class="modal-header">
+                <h3>Patient Profile</h3>
+                <span class="modal-close" onclick="document.getElementById('patient-detail-modal').classList.remove('active')">
+                    <i data-lucide="x"></i>
+                </span>
+            </div>
+            <div class="modal-body" style="padding:1.25rem 1.5rem;">
+                <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.25rem;">
+                    <div id="pdm-avatar" style="width:60px;height:60px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:800;overflow:hidden;flex-shrink:0;"></div>
+                    <div>
+                        <div id="pdm-name" style="font-size:1.1rem;font-weight:700;color:#1E293B;"></div>
+                        <div style="margin-top:6px;display:flex;gap:0.4rem;flex-wrap:wrap;">
+                            <span id="pdm-status"></span>
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0;border:1px solid #E2E8F0;border-radius:10px;overflow:hidden;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8rem 1rem;border-bottom:1px solid #F1F5F9;">
+                        <span style="font-size:0.82rem;color:#64748B;display:flex;align-items:center;gap:0.5rem;font-weight:500;">
+                            <i data-lucide="mail" style="width:14px;height:14px;"></i> Email Address
+                        </span>
+                        <span id="pdm-email" style="font-size:0.85rem;font-weight:600;color:#1E293B;"></span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8rem 1rem;border-bottom:1px solid #F1F5F9;">
+                        <span style="font-size:0.82rem;color:#64748B;display:flex;align-items:center;gap:0.5rem;font-weight:500;">
+                            <i data-lucide="calendar" style="width:14px;height:14px;"></i> Date Joined
+                        </span>
+                        <span id="pdm-joined" style="font-size:0.85rem;font-weight:600;color:#1E293B;"></span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;align-items:center;padding:0.8rem 1rem;">
+                        <span style="font-size:0.82rem;color:#64748B;display:flex;align-items:center;gap:0.5rem;font-weight:500;">
+                            <i data-lucide="heart-pulse" style="width:14px;height:14px;"></i> Health Status
+                        </span>
+                        <span id="pdm-health" style="font-size:0.83rem;"></span>
+                    </div>
+                </div>
+                <p style="font-size:0.73rem;color:#94A3B8;text-align:center;margin-top:0.75rem;">
+                    <i data-lucide="info" style="width:12px;height:12px;vertical-align:middle;"></i>
+                    Full diagnostic history is available in the Doctor's panel.
+                </p>
+            </div>
+        </div>
+    </div>
+
     <div class="toast-container" id="toast-container"></div>
 
-    <script>lucide.createIcons();</script>
     <script type="module" src="./js/admin.js"></script>
 </body>
 

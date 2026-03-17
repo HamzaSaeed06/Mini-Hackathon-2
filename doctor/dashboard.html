@@ -9,11 +9,14 @@
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap"
         rel="stylesheet">
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/id-card.css">
+    <link rel="stylesheet" href="../css/profile.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
 <body class="bg-light-blue">
@@ -49,6 +52,14 @@
             <div class="nav-item" data-target="stats-section" data-title="My Performance">
                 <i data-lucide="bar-chart-3"></i>
                 <span>My Performance</span>
+            </div>
+            <div class="nav-item" data-target="profile-section" data-title="My Profile">
+                <i data-lucide="user-circle"></i>
+                <span>My Profile</span>
+            </div>
+            <div class="nav-item" id="open-my-id-btn" title="View Digital ID">
+                <i data-lucide="contact-2"></i>
+                <span>Digital ID</span>
             </div>
         </nav>
 
@@ -100,7 +111,7 @@
                     </div>
 
                     <!-- Desktop Table -->
-                    <div style="overflow-x: auto;" class="desktop-only">
+                    <div class="table-wrapper desktop-only">
                         <table class="data-table">
                             <thead>
                                 <tr>
@@ -122,6 +133,9 @@
                     <div id="appointments-card-grid" class="staff-card-grid mobile-only">
                         <p class="empty-state">Loading appointments...</p>
                     </div>
+
+                    <!-- Pagination Controls -->
+                    <div id="appointments-pagination-container" class="pagination-controls"></div>
                 </div>
             </section>
 
@@ -129,9 +143,16 @@
             <section id="patients-history-section" class="content-section">
                 <div class="table-container">
                     <div class="table-header">
-                        <h3 class="chart-title">Patient Records</h3>
+                        <div class="header-main">
+                            <h3 class="chart-title">Patient Records</h3>
+                            <div class="search-box-wrapper">
+                                <i data-lucide="search"></i>
+                                <input type="text" placeholder="Search records..." class="search-input"
+                                    id="history-search" oninput="filterHistory()">
+                            </div>
+                        </div>
                     </div>
-                    <div style="overflow-x: auto;" class="desktop-only">
+                    <div class="table-wrapper desktop-only">
                         <table class="data-table">
                             <thead>
                                 <tr>
@@ -146,6 +167,13 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <div id="history-card-grid" class="staff-card-grid mobile-only">
+                        <p class="empty-state">Loading records...</p>
+                    </div>
+
+                    <!-- Pagination Controls -->
+                    <div id="history-pagination-container" class="pagination-controls"></div>
                 </div>
             </section>
             <!-- AI CONSULTANT SECTION -->
@@ -199,20 +227,89 @@
 
             <!-- STATS SECTION -->
             <section id="stats-section" class="content-section">
-                <div class="metrics-grid">
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <span class="metric-title">Today's Appointments</span>
-                            <div class="metric-icon success"><i data-lucide="calendar"></i></div>
+                </div>
+            </section>
+
+            <!-- PROFILE SECTION -->
+            <section id="profile-section" class="content-section">
+                <div class="profile-container">
+                    <div class="profile-card-v2">
+                        <div class="profile-main-wrapper">
+                            <div class="profile-avatar-container">
+                                <div class="profile-avatar-circle" id="profile-avatar-display">
+                                    D
+                                </div>
+                                <button class="btn-edit-avatar" title="Upload Photo" onclick="document.getElementById('photo-upload-input').click()">
+                                    <i data-lucide="camera" style="width: 18px;"></i>
+                                </button>
+                                <input type="file" id="photo-upload-input" style="display: none;" accept="image/*" onchange="handlePhotoSelect(event)">
+                            </div>
+
+                            <div class="profile-header-info">
+                                <div class="profile-intro">
+                                    <h2 id="profile-name-display">Dr. Loading...</h2>
+                                    <div class="profile-role-badge">
+                                        <i data-lucide="award" style="width: 16px; margin-right: 6px;"></i>
+                                        <span id="profile-role-display">Medical Specialist</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="profile-info-grid">
+                                <div class="info-mini-card">
+                                    <div class="mini-card-icon"><i data-lucide="mail"></i></div>
+                                    <div class="mini-card-content">
+                                        <label>Email Address</label>
+                                        <span id="profile-email-display">loading@example.com</span>
+                                    </div>
+                                </div>
+                                <div class="info-mini-card">
+                                    <div class="mini-card-icon"><i data-lucide="fingerprint"></i></div>
+                                    <div class="mini-card-content">
+                                        <label>Staff ID</label>
+                                        <span id="profile-id-display">#D-00000</span>
+                                    </div>
+                                </div>
+                                <div class="info-mini-card">
+                                    <div class="mini-card-icon"><i data-lucide="calendar"></i></div>
+                                    <div class="mini-card-content">
+                                        <label>Joined Date</label>
+                                        <span id="profile-joined-display">Jan 2024</span>
+                                    </div>
+                                </div>
+                                <div class="info-mini-card">
+                                    <div class="mini-card-icon"><i data-lucide="activity"></i></div>
+                                    <div class="mini-card-content">
+                                        <label>Status</label>
+                                        <span>Active / Verified</span>
+                                    </div>
+                                </div>
+                                <div class="info-mini-card" style="grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between;">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                        <div class="mini-card-icon" style="background: #FEF08A; color: #CA8A04;"><i data-lucide="users"></i></div>
+                                        <div class="mini-card-content">
+                                            <label>Daily Appointment Capacity</label>
+                                            <span style="font-size: 0.8rem; color: #64748B;">Maximum patients you can attend per day</span>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <input type="number" id="profile-capacity-input" class="form-input" style="width: 80px; text-align: center; padding: 0.5rem;" min="1" max="50" value="10">
+                                        <button class="btn btn-primary btn-sm" onclick="updateDailyCapacity()" style="margin: 0;">Save</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="profile-footer-actions">
+                                <button class="btn-premium btn-generate-id" id="profile-download-id-btn" disabled>
+                                    <i data-lucide="download"></i>
+                                    <span>Download ID Card</span>
+                                </button>
+                            </div>
+                            <div id="photo-required-msg" class="photo-warning">
+                                <i data-lucide="info" style="width: 14px;"></i>
+                                <span>Please upload a profile photo to enable ID download</span>
+                            </div>
                         </div>
-                        <div class="metric-value" id="stats-today">0</div>
-                    </div>
-                    <div class="metric-card">
-                        <div class="metric-header">
-                            <span class="metric-title">Monthly Consultations</span>
-                            <div class="metric-icon warning"><i data-lucide="users"></i></div>
-                        </div>
-                        <div class="metric-value" id="stats-monthly">0</div>
                     </div>
                 </div>
             </section>
@@ -225,31 +322,82 @@
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
                 <h3>Process Appointment</h3>
-                <button onclick="closeModal('diagnosis-modal')"><i data-lucide="x"></i></button>
+                <button class="modal-close-btn" onclick="closeModal('diagnosis-modal')"><i data-lucide="x"></i></button>
             </div>
             <div class="modal-body">
                 <form id="diagnosis-form">
                     <input type="hidden" id="active-appt-id">
+                    
                     <div class="form-group">
-                        <label>Physical Findings / Symptoms</label>
-                        <textarea id="finding-text" placeholder="Observations..."></textarea>
+                        <label><i data-lucide="clipboard-list" style="width:14px; margin-right:4px;"></i> Physical Findings / Symptoms</label>
+                        <textarea id="finding-text" rows="3" placeholder="Describe patient observations..."></textarea>
                     </div>
+
+                    <div class="form-group" style="margin-bottom: 1.5rem;">
+                        <button type="button" class="spc-btn primary" style="width:100%; justify-content:center;" onclick="rapidAiAssist()">
+                            <i data-lucide="sparkles"></i> Use AI Rapid Assist
+                        </button>
+                    </div>
+
                     <div class="form-group">
-                        <label>AI Rapid Assist</label>
-                        <button type="button" class="btn-sm" onclick="rapidAiAssist()">Use AI to suggest
-                            diagnosis</button>
+                        <label><i data-lucide="activity" style="width:14px; margin-right:4px;"></i> Diagnosis</label>
+                        <input type="text" id="diagnosis-input" placeholder="Enter final diagnosis">
                     </div>
+
                     <div class="form-group">
-                        <label>Diagnosis</label>
-                        <input type="text" id="diagnosis-input" placeholder="Final Diagnosis">
+                        <label><i data-lucide="pill" style="width:14px; margin-right:4px;"></i> Medicines</label>
+                        <input type="text" id="medicines-input" placeholder="Separate medicines by comma (e.g. Panadol, Amoxicillin)">
                     </div>
-                    <div class="form-group">
-                        <label>Medicines (Separate by comma)</label>
-                        <input type="text" id="medicines-input" placeholder="Panadol, Amoxicillin...">
-                    </div>
-                    <button type="button" class="btn-primary w-full" style="margin-top: 1rem;"
-                        onclick="saveDiagnosis()">Complete & Generate Prescription</button>
+
+                    <button type="button" class="btn btn-primary w-full" style="margin-top: 1.5rem; height: 48px; font-weight: 700;"
+                        onclick="saveDiagnosis()">
+                        <i data-lucide="check-circle"></i> Save & Generate Prescription
+                    </button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden ID Card Render Area for background generation -->
+    <div id="id-card-modal" style="display: none; visibility: hidden; position: fixed; top: -9999px;">
+        <div id="id-card-render-area"></div>
+    </div>
+
+    <!-- Medical History Timeline Modal -->
+    <div class="modal-overlay" id="medical-history-modal">
+        <div class="modal-content medical-timeline-modal" style="max-width: 700px;">
+            <div class="modal-header">
+                <div>
+                    <h3 id="history-modal-patient-name">Patient Medical History</h3>
+                    <p class="text-muted" style="font-size: 0.8rem; margin-top: 2px;">Comprehensive timeline of past visits and prescriptions</p>
+                </div>
+                <button class="modal-close-btn" onclick="closeModal('medical-history-modal')"><i data-lucide="x"></i></button>
+            </div>
+            <div class="modal-body" style="padding: 0 !important; background: #f8fafc;">
+                <!-- Date Filters -->
+                <div class="modal-filter-bar" style="padding: 1rem 1.5rem; background: #fff; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label style="font-size: 0.75rem; font-weight: 600; color: #64748b;">From:</label>
+                        <input type="date" id="history-filter-start" class="form-input" style="padding: 6px 10px; font-size: 0.8rem; width: auto; border-radius: 8px;">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label style="font-size: 0.75rem; font-weight: 600; color: #64748b;">To:</label>
+                        <input type="date" id="history-filter-end" class="form-input" style="padding: 6px 10px; font-size: 0.8rem; width: auto; border-radius: 8px;">
+                    </div>
+                    <button class="btn btn-primary btn-sm" onclick="applyHistoryFilter()" style="margin: 0; padding: 6px 14px; height: auto;">Filter</button>
+                    <button class="btn btn-secondary btn-sm" onclick="resetHistoryFilter()" style="margin: 0; padding: 6px 14px; height: auto;">Reset</button>
+                </div>
+
+                <div id="timeline-scroll-area" style="max-height: 60vh; overflow-y: auto; padding: 1.5rem;">
+                    <div class="timeline-container" id="medical-timeline-content">
+                        <!-- Timeline items injected via JS -->
+                    </div>
+                </div>
+                <!-- Modal Pagination -->
+                <div id="modal-history-pagination" class="pagination-controls" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border); background: #f8fafc; margin: 0;"></div>
+            </div>
+            <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid var(--border); background: #fff; display: flex; justify-content: flex-end;">
+                <button class="btn btn-secondary btn-sm" onclick="closeModal('medical-history-modal')" style="width: auto; min-height: 38px;">Close Records</button>
             </div>
         </div>
     </div>
@@ -259,11 +407,11 @@
     <script>
         // Inline layout helpers
         window.openSidebar = () => {
-            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('sidebar').classList.add('open');
             document.getElementById('sidebar-overlay').classList.add('active');
         };
         window.closeSidebar = () => {
-            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebar').classList.remove('open');
             document.getElementById('sidebar-overlay').classList.remove('active');
         };
     </script>

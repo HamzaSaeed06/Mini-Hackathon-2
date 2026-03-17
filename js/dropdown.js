@@ -34,8 +34,13 @@ export function initCustomSelect(containerId, optionsListId, originalSelectId, o
             option.className = 'custom-option';
             if (originalSelect.value === item.id) option.classList.add('selected');
 
+            const photoURL = item.photoURL || (item.extra && item.extra.photoURL);
+            const avatarHTML = photoURL 
+                ? `<img src="${photoURL}" alt="${item.name}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+                : initial;
+
             option.innerHTML = `
-                <div class="custom-option-avatar">${initial}</div>
+                <div class="custom-option-avatar">${avatarHTML}</div>
                 <div class="custom-option-info">
                     <span class="custom-option-name">${item.name}</span>
                     <span class="custom-option-sub">${item.sub || ''}</span>

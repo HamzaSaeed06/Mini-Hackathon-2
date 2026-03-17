@@ -1,0 +1,12 @@
+<script src="../js/dropdown.js"></script>
+<script>
+    window.openSidebar = () => {
+        document.getElementById('sidebar').classList.add('open');
+        document.getElementById('sidebar-overlay').classList.add('active');
+    };
+    window.closeSidebar = () => {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebar-overlay').classList.remove('active');
+    };
+</script>
+</body>

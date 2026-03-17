@@ -1,0 +1,10 @@
+/* Receptionist Dashboard — imports shared base, then applies reception-specific overrides */
+@import url('../../css/base-dashboard.css');
+
+/* Reception uses Teal/Cyan primary */
+:root {
+    --primary: #0891B2;
+    --primary-hover: #0E7490;
+    --primary-light: #ECFEFF;
+    --shadow-glow: 0 4px 14px 0 rgba(8, 145, 178, 0.18);
+}

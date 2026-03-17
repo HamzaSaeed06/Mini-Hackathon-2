@@ -7,12 +7,16 @@
     <title>Receptionist Dashboard - CareSync AI</title>
     <!-- Google Fonts -->
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
         rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/dashboard.css">
+    <link rel="stylesheet" href="../css/id-card.css">
+    <link rel="stylesheet" href="../css/profile.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 
 <body class="bg-light-blue">
@@ -48,6 +52,14 @@
             <div class="nav-item" data-target="patients-list-section" data-title="Patient Directory">
                 <i data-lucide="contact-2"></i>
                 <span>Patient Directory</span>
+            </div>
+            <div class="nav-item" data-target="doctors-list-section" data-title="Doctor Directory">
+                <i data-lucide="stethoscope"></i>
+                <span>Doctor Directory</span>
+            </div>
+            <div class="nav-item" data-target="profile-section" data-title="My Profile">
+                <i data-lucide="user-circle"></i>
+                <span>My Profile</span>
             </div>
         </nav>
 
@@ -96,16 +108,57 @@
                     </div>
                     <div class="metric-card">
                         <div class="metric-header">
-                            <span class="metric-title">Queue Count</span>
+                            <span class="metric-title">Today's Queue</span>
                             <div class="metric-icon warning"><i data-lucide="list-ordered"></i></div>
                         </div>
                         <div class="metric-value" id="stats-queue">0</div>
                     </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Upcoming</span>
+                            <div class="metric-icon" style="background:#EFF6FF;color:#2563EB"><i data-lucide="calendar-clock"></i></div>
+                        </div>
+                        <div class="metric-value" id="stats-upcoming">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Completed</span>
+                            <div class="metric-icon success"><i data-lucide="check-circle-2"></i></div>
+                        </div>
+                        <div class="metric-value" id="stats-completed">0</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-header">
+                            <span class="metric-title">Current Shift</span>
+                            <div class="metric-icon primary"><i data-lucide="clock"></i></div>
+                        </div>
+                        <div class="metric-value" id="current-shift-display">Loading...</div>
+                        <p class="text-muted" id="shift-hours-display" style="font-size: 0.75rem; margin-top: 0.25rem;">—</p>
+                    </div>
                 </div>
 
                 <div class="table-container" style="margin-top: 2rem;">
-                    <div class="table-header">
-                        <h3 class="chart-title">Current Patient Queue</h3>
+                    <div class="table-header" style="flex-wrap: wrap; gap: 0.75rem;">
+                        <h3 class="chart-title">Patient Appointments</h3>
+                        <!-- Queue Filter Tabs -->
+                        <div class="queue-tabs" id="queue-tabs">
+                            <button class="queue-tab active" data-tab="today">
+                                <i data-lucide="sun"></i> Today
+                                <span class="tab-badge" id="tab-badge-today">0</span>
+                            </button>
+                            <button class="queue-tab" data-tab="upcoming">
+                                <i data-lucide="calendar-clock"></i> Upcoming
+                                <span class="tab-badge upcoming" id="tab-badge-upcoming">0</span>
+                            </button>
+                            <button class="queue-tab" data-tab="expired">
+                                <i data-lucide="alert-triangle"></i> Expired
+                                <span class="tab-badge expired" id="tab-badge-expired">0</span>
+                            </button>
+                            <button class="queue-tab" data-tab="completed">
+                                <i data-lucide="check-circle-2"></i> Completed
+                                <span class="tab-badge completed" id="tab-badge-completed">0</span>
+                            </button>
+                        </div>
                     </div>
                     <div style="overflow-x: auto;" class="desktop-only">
                         <table class="data-table">
@@ -113,18 +166,22 @@
                                 <tr>
                                     <th>Patient</th>
                                     <th>Assigned Doctor</th>
+                                    <th>Date</th>
                                     <th>Time</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
                             <tbody id="queue-table-body">
                                 <tr>
-                                    <td colspan="4" class="empty-state">Loading queue...</td>
+                                    <td colspan="5" class="empty-state">Loading queue...</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                     <div id="queue-card-grid" class="staff-card-grid mobile-only"></div>
+
+                    <!-- Pagination Controls -->
+                    <div id="queue-pagination" class="pagination-controls"></div>
                 </div>
             </section>
 
@@ -135,47 +192,33 @@
                     <form id="register-patient-form">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label class="form-label">Full Name</label>
-                                <div class="input-icon-wrapper">
-                                    <i data-lucide="user" class="input-icon"></i>
-                                    <input type="text" id="patient-name" class="form-input"
-                                        placeholder="Enter patient name" required>
-                                </div>
+                                <label class="form-label"><i data-lucide="user" class="input-icon"></i> Full
+                                    Name</label>
+                                <input type="text" id="patient-name" class="form-input" placeholder="Enter patient name"
+                                    required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Email Address</label>
-                                <div class="input-icon-wrapper">
-                                    <i data-lucide="mail" class="input-icon"></i>
-                                    <input type="email" id="patient-email" class="form-input"
-                                        placeholder="Email for records" required>
-                                </div>
+                                <label class="form-label"><i data-lucide="mail" class="input-icon"></i> Email
+                                    Address</label>
+                                <input type="email" id="patient-email" class="form-input"
+                                    placeholder="Email for records" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Age</label>
-                                <div class="input-icon-wrapper">
-                                    <i data-lucide="hash" class="input-icon"></i>
-                                    <input type="number" id="patient-age" class="form-input" placeholder="e.g. 25"
-                                        required>
-                                </div>
+                                <label class="form-label"><i data-lucide="hash" class="input-icon"></i> Age</label>
+                                <input type="number" id="patient-age" class="form-input" placeholder="e.g. 25" required>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Gender</label>
-                                <div class="input-icon-wrapper">
-                                    <i data-lucide="users" class="input-icon"></i>
-                                    <select id="patient-gender" class="form-input" required>
-                                        <option value="Male">Male</option>
-                                        <option value="Female">Female</option>
-                                        <option value="Other">Other</option>
-                                    </select>
-                                </div>
+                                <label class="form-label"><i data-lucide="users" class="input-icon"></i> Gender</label>
+                                <select id="patient-gender" class="form-input" required>
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                    <option value="Other">Other</option>
+                                </select>
                             </div>
                             <div class="form-group" style="grid-column: span 2;">
-                                <label class="form-label">Temporary Password</label>
-                                <div class="input-icon-wrapper">
-                                    <i data-lucide="lock" class="input-icon"></i>
-                                    <input type="text" id="patient-password" class="form-input" value="Patient123"
-                                        readonly>
-                                </div>
+                                <label class="form-label"><i data-lucide="lock" class="input-icon"></i> Temporary
+                                    Password</label>
+                                <input type="text" id="patient-password" class="form-input" value="Patient123" readonly>
                                 <p class="text-muted" style="font-size: 0.75rem; margin-top: 0.5rem;">Patients can
                                     change this on first login.</p>
                             </div>
@@ -199,57 +242,54 @@
 
                         <form id="book-appointment-form">
                             <div class="form-group" style="margin-bottom: 1.5rem;">
-                                <label class="form-label">Select Patient</label>
-                                <div class="input-icon-wrapper">
-                                    <i data-lucide="user" class="input-icon"></i>
-                                    <div class="custom-select-container" id="patient-select-container">
-                                        <div class="custom-select-trigger" id="patient-select-trigger">
-                                            <span>Choose a patient...</span>
-                                            <i data-lucide="chevron-down" class="select-chevron"></i>
-                                        </div>
-                                        <div class="custom-select-options">
-                                            <div class="custom-select-search">
-                                                <input type="text" placeholder="Search patients...">
-                                            </div>
-                                            <div class="options-list" id="patient-options-list">
-                                                <!-- Populated by JS -->
-                                            </div>
-                                        </div>
-                                        <select id="select-patient" style="display:none;" required></select>
+                                <label class="form-label"><i data-lucide="user" class="input-icon"></i> Select
+                                    Patient</label>
+                                <div class="custom-select-container" id="patient-select-container">
+                                    <div class="custom-select-trigger" id="patient-select-trigger">
+                                        <span>Choose a patient...</span>
+                                        <i data-lucide="chevron-down" class="select-chevron"></i>
                                     </div>
+                                    <div class="custom-select-options">
+                                        <div class="custom-select-search">
+                                            <input type="text" placeholder="Search patients...">
+                                        </div>
+                                        <div class="options-list" id="patient-options-list">
+                                            <!-- Populated by JS -->
+                                        </div>
+                                    </div>
+                                    <select id="select-patient" style="display:none;" required></select>
                                 </div>
                                 <span class="form-hint">Only active patients appear in this list.</span>
                             </div>
 
                             <div class="form-grid" style="margin-bottom: 1.5rem;">
                                 <div class="form-group">
-                                    <label class="form-label">Select Specialist</label>
-                                    <div class="input-icon-wrapper">
-                                        <i data-lucide="stethoscope" class="input-icon"></i>
-                                        <div class="custom-select-container" id="doctor-select-container">
-                                            <div class="custom-select-trigger" id="doctor-select-trigger">
-                                                <span>Choose a doctor...</span>
-                                                <i data-lucide="chevron-down" class="select-chevron"></i>
-                                            </div>
-                                            <div class="custom-select-options">
-                                                <div class="custom-select-search">
-                                                    <input type="text" placeholder="Search doctors...">
-                                                </div>
-                                                <div class="options-list" id="doctor-options-list">
-                                                    <!-- Populated by JS -->
-                                                </div>
-                                            </div>
-                                            <select id="select-doctor" style="display:none;" required></select>
+                                    <label class="form-label"><i data-lucide="stethoscope" class="input-icon"></i>
+                                        Select Specialist</label>
+                                    <div class="custom-select-container" id="doctor-select-container">
+                                        <div class="custom-select-trigger" id="doctor-select-trigger">
+                                            <span>Choose a doctor...</span>
+                                            <i data-lucide="chevron-down" class="select-chevron"></i>
                                         </div>
+                                        <div class="custom-select-options">
+                                            <div class="custom-select-search">
+                                                <input type="text" placeholder="Search doctors...">
+                                            </div>
+                                            <div class="options-list" id="doctor-options-list">
+                                                <!-- Populated by JS -->
+                                            </div>
+                                        </div>
+                                        <select id="select-doctor" style="display:none;" required></select>
                                     </div>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Appointment Time</label>
-                                    <div class="input-icon-wrapper">
-                                        <i data-lucide="clock" class="input-icon"></i>
-                                        <input type="time" id="appointment-time" class="form-input" required
-                                            style="padding-left: 2.75rem;">
-                                    </div>
+                                    <label class="form-label"><i data-lucide="calendar" class="input-icon"></i> Appointment Date</label>
+                                    <input type="date" id="appointment-date" class="form-input" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label"><i data-lucide="clock" class="input-icon"></i> Appointment
+                                        Time</label>
+                                    <input type="time" id="appointment-time" class="form-input" required>
                                 </div>
                             </div>
 
@@ -319,21 +359,134 @@
                         </table>
                     </div>
                     <div id="patients-card-grid" class="staff-card-grid mobile-only"></div>
+
+                    <!-- Pagination Controls -->
+                    <div id="dir-pagination" class="pagination-controls"></div>
                 </div>
             </section>
 
+            <!-- DOCTOR DIRECTORY SECTION -->
+            <section id="doctors-list-section" class="content-section">
+                <div class="table-container">
+                    <div class="table-header">
+                        <div class="header-main">
+                            <h3 class="chart-title">Manage Doctors</h3>
+                            <div class="search-box-wrapper">
+                                <i data-lucide="search"></i>
+                                <input type="text" placeholder="Search doctors..." class="search-input" id="doctor-dir-search" oninput="filterDoctorDirectory(this.value)">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="table-wrapper desktop-only">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Doctor</th>
+                                    <th>Specialization</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="doctors-table-body">
+                                <!-- Data injected via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="doctors-card-grid" class="staff-card-grid mobile-only"></div>
+                    <div id="doctor-dir-pagination" class="pagination-controls"></div>
+                </div>
+            </section>
+
+            <!-- PROFILE SECTION -->
+            <section id="profile-section" class="content-section">
+                <div class="profile-container">
+                    <div class="profile-card-v2">
+                        <div class="profile-main-wrapper">
+                            <div class="profile-avatar-container">
+                                <div class="profile-avatar-circle" id="profile-avatar-display">
+                                    R
+                                </div>
+                                <button class="btn-edit-avatar" title="Upload Photo" onclick="document.getElementById('photo-upload-input').click()">
+                                    <i data-lucide="camera" style="width: 18px;"></i>
+                                </button>
+                                <input type="file" id="photo-upload-input" style="display: none;" accept="image/*" onchange="handlePhotoSelect(event)">
+                            </div>
+
+                            <div class="profile-header-info">
+                                <div class="profile-intro">
+                                    <h2 id="profile-name-display">Loading...</h2>
+                                    <div class="profile-role-badge">
+                                        <i data-lucide="user-check" style="width: 16px; margin-right: 6px;"></i>
+                                        <span id="profile-role-display">Front Desk</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="profile-info-grid">
+                                <div class="info-mini-card">
+                                    <div class="mini-card-icon"><i data-lucide="mail"></i></div>
+                                    <div class="mini-card-content">
+                                        <label>Email Address</label>
+                                        <span id="profile-email-display">loading@example.com</span>
+                                    </div>
+                                </div>
+                                <div class="info-mini-card">
+                                    <div class="mini-card-icon"><i data-lucide="fingerprint"></i></div>
+                                    <div class="mini-card-content">
+                                        <label>Staff ID</label>
+                                        <span id="profile-id-display">#REC-00000</span>
+                                    </div>
+                                </div>
+                                <div class="info-mini-card">
+                                    <div class="mini-card-icon"><i data-lucide="clock"></i></div>
+                                    <div class="mini-card-content">
+                                        <label>Shift Schedule</label>
+                                        <span>Full-Time (A)</span>
+                                    </div>
+                                </div>
+                                <div class="info-mini-card">
+                                    <div class="mini-card-icon"><i data-lucide="calendar"></i></div>
+                                    <div class="mini-card-content">
+                                        <label>Joined Date</label>
+                                        <span id="profile-joined-display">Jan 2024</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="profile-footer-actions">
+                                <button class="btn-premium btn-generate-id" id="profile-download-id-btn" disabled>
+                                    <i data-lucide="download"></i>
+                                    <span>Download ID Card</span>
+                                </button>
+                            </div>
+                            <div id="photo-required-msg" class="photo-warning">
+                                <i data-lucide="info" style="width: 14px;"></i>
+                                <span>Please upload a profile photo to enable ID download</span>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </section>
         </div> <!-- End page-content -->
     </main>
+
+    <!-- Hidden ID Card Render Area for background generation -->
+    <div id="id-card-modal" style="display: none; visibility: hidden; position: fixed; top: -9999px;">
+        <div id="id-card-render-area"></div>
+    </div>
+
 
     <!-- Scripts -->
     <script type="module" src="./js/reception.js"></script>
     <script>
+        if (window.lucide) lucide.createIcons();
         window.openSidebar = () => {
-            document.getElementById('sidebar').classList.add('active');
+            document.getElementById('sidebar').classList.add('open');
             document.getElementById('sidebar-overlay').classList.add('active');
         };
         window.closeSidebar = () => {
-            document.getElementById('sidebar').classList.remove('active');
+            document.getElementById('sidebar').classList.remove('open');
             document.getElementById('sidebar-overlay').classList.remove('active');
         };
     </script>
