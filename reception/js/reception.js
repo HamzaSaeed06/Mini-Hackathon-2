@@ -486,37 +486,102 @@ window.closeModal = (id) => document.getElementById(id)?.classList.remove('activ
 
 // ── Form Handlers ─────────────────────────────────────────────
 
-// 1. Register Patient
+// ── Firebase API key for REST Auth (same project) ─────────────
+const FIREBASE_API_KEY = 'AIzaSyA_W3AnyT17siEgzqon65FjkgyTynFPJq4';
+
+// 1. Register Patient — Creates real Firebase Auth account via REST API
 const registerForm = document.getElementById('register-patient-form');
 if (registerForm) {
     registerForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const name = document.getElementById('patient-name').value;
-        const email = document.getElementById('patient-email').value;
-        const age = document.getElementById('patient-age').value;
-        const gender = document.getElementById('patient-gender').value;
+
+        const name = document.getElementById('patient-name').value.trim();
+        const email = document.getElementById('patient-email').value.trim();
+        const age = document.getElementById('patient-age').value.trim();
+        const gender = document.getElementById('patient-gender').value.trim();
+        const phone = document.getElementById('patient-phone')?.value.trim() || '';
+
+        if (!name || !email || !age || !gender) {
+            showToast('Please fill all required fields.', 'error');
+            return;
+        }
+
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            showToast('Please enter a valid email address.', 'error');
+            return;
+        }
+
+        const submitBtn = registerForm.querySelector('[type="submit"]');
+        const originalBtnHTML = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Registering...`;
+            if (window.lucide) lucide.createIcons();
+        }
+
+        const defaultPassword = 'CareSync@123';
 
         try {
-            // In a real app, we'd use Firebase Auth to create a user.
-            // For hackathon, we save to Firestore and simulate.
-            const newPatientRef = doc(collection(db, 'users'));
-            await setDoc(newPatientRef, {
+            // Create Firebase Auth account via REST API (does not affect current session)
+            const authRes = await fetch(
+                `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${FIREBASE_API_KEY}`,
+                {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password: defaultPassword, returnSecureToken: false })
+                }
+            );
+
+            const authData = await authRes.json();
+
+            if (authData.error) {
+                const code = authData.error.message;
+                let msg = 'Failed to create account.';
+                if (code === 'EMAIL_EXISTS') msg = 'This email is already registered. Try a different email.';
+                else if (code === 'INVALID_EMAIL') msg = 'Invalid email address format.';
+                else if (code === 'WEAK_PASSWORD : Password should be at least 6 characters') msg = 'Password too weak.';
+                showToast(msg, 'error');
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = originalBtnHTML; if (window.lucide) lucide.createIcons(); }
+                return;
+            }
+
+            const newUid = authData.localId;
+
+            // Save patient profile to Firestore with real Auth UID
+            await setDoc(doc(db, 'users', newUid), {
                 name,
                 email,
                 age,
                 gender,
+                phone,
                 role: 'patient',
                 status: 'active',
+                registeredBy: auth.currentUser?.uid || 'receptionist',
                 createdAt: serverTimestamp()
             });
 
-            showToast('Patient registered successfully!', 'success');
+            // Show credentials modal or toast
+            showToast(`Patient registered! Login: ${email} | Password: ${defaultPassword}`, 'success');
+
+            // Show credentials in a dismissible info box
+            const credBox = document.getElementById('patient-credentials-box');
+            if (credBox) {
+                document.getElementById('cred-email').textContent = email;
+                document.getElementById('cred-password').textContent = defaultPassword;
+                credBox.style.display = 'flex';
+            }
+
             registerForm.reset();
-            // Switch to queue
-            document.querySelector('[data-target="overview-section"]').click();
         } catch (err) {
-            console.error(err);
-            showToast('Failed to register patient.', 'error');
+            console.error('Registration error:', err);
+            showToast('Registration failed. Please check network and try again.', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnHTML;
+                if (window.lucide) lucide.createIcons();
+            }
         }
     });
 }

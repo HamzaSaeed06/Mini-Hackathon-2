@@ -1206,6 +1206,16 @@
     color: #C2410C;
 }
 
+.status-indicator-pill.cancelled {
+    background: #FEF2F2;
+    color: #991B1B;
+}
+
+.status-indicator-pill.scheduled {
+    background: #EFF6FF;
+    color: #1D4ED8;
+}
+
 /* ── Queue Lifecycle Tabs ──────────────────────────────────── */
 .queue-tabs {
     display: flex;

@@ -4,37 +4,177 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Clinic Management & Smart Diagnosis</title>
-    <!-- Main Stylesheet -->
+    <title>CareSync AI — Smart Clinic Management</title>
     <link rel="stylesheet" href="./css/style.css">
-    <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .forgot-modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(6px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            padding: 1rem;
+        }
+        .forgot-modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .forgot-modal-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 2.5rem 2rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            transform: scale(0.95) translateY(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .forgot-modal-overlay.active .forgot-modal-box {
+            transform: scale(1) translateY(0);
+        }
+        .forgot-modal-icon {
+            width: 56px;
+            height: 56px;
+            background: #EFF6FF;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2563EB;
+            margin-bottom: 1.25rem;
+        }
+        .forgot-modal-box h3 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0F172A;
+            margin-bottom: 0.5rem;
+        }
+        .forgot-modal-box p {
+            color: #64748B;
+            font-size: 0.9rem;
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+        .forgot-modal-actions {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1.25rem;
+        }
+        .btn-cancel-reset {
+            flex: 1;
+            padding: 0.8rem;
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            background: #F8FAFC;
+            color: #475569;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            transition: all 0.2s;
+        }
+        .btn-cancel-reset:hover {
+            background: #E2E8F0;
+        }
+        #send-reset-btn {
+            flex: 1.5;
+            padding: 0.8rem;
+            border: none;
+            border-radius: 8px;
+            background: #2563EB;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+        #send-reset-btn:hover:not(:disabled) {
+            background: #1D4ED8;
+        }
+        #send-reset-btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+        .forgot-link {
+            background: none;
+            border: none;
+            color: #2563EB;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            padding: 0;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .forgot-link:hover {
+            color: #1D4ED8;
+        }
+        .password-input-wrapper {
+            position: relative;
+        }
+        .password-toggle-btn {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #94A3B8;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            transition: color 0.2s;
+        }
+        .password-toggle-btn:hover {
+            color: #475569;
+        }
+    </style>
 </head>
 
 <body>
     <div class="auth-wrapper">
-        <!-- Left Side: Form Container -->
         <div class="auth-form-container">
             <div class="auth-form-content">
                 <div class="auth-header">
                     <div class="brand-logo">
                         <i data-lucide="activity"></i>
                     </div>
-                    <h2>Welcome to CareSync</h2>
+                    <h2>Welcome to CareSync AI</h2>
                     <p>Enter your details to access your account</p>
                 </div>
 
                 <form id="login-form">
                     <div class="form-group">
-                        <label for="email" class="form-label"><i data-lucide="mail" class="input-icon"></i> Email
-                            Address</label>
-                        <input type="email" id="email" class="form-input" placeholder="name@clinic.com" required>
+                        <label for="email" class="form-label">
+                            <i data-lucide="mail" class="input-icon"></i> Email Address
+                        </label>
+                        <input type="email" id="email" class="form-input" placeholder="name@clinic.com" required autocomplete="email">
                     </div>
 
                     <div class="form-group">
-                        <label for="password" class="form-label"><i data-lucide="lock" class="input-icon"></i>
-                            Password</label>
-                        <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+                        <label for="password" class="form-label">
+                            <i data-lucide="lock" class="input-icon"></i> Password
+                        </label>
+                        <div class="password-input-wrapper">
+                            <input type="password" id="password" class="form-input" placeholder="••••••••" required autocomplete="current-password" style="padding-right: 2.75rem;">
+                            <button type="button" class="password-toggle-btn" id="toggle-password" title="Show/Hide password" aria-label="Toggle password visibility">
+                                <i data-lucide="eye" id="eye-icon" style="width:16px;height:16px;"></i>
+                            </button>
+                        </div>
                     </div>
 
                     <div class="form-options">
@@ -42,7 +182,7 @@
                             <input type="checkbox" id="remember" class="custom-checkbox">
                             Remember me
                         </label>
-                        <a href="#" class="font-medium">Forgot password?</a>
+                        <button type="button" class="forgot-link" onclick="openForgotPassword()">Forgot password?</button>
                     </div>
 
                     <button type="submit" class="btn btn-primary" id="login-btn">
@@ -50,18 +190,15 @@
                         <i data-lucide="arrow-right" class="btn-icon"></i>
                         <div class="loader-spinner hidden" id="login-loader"></div>
                     </button>
-
                 </form>
 
                 <div class="auth-footer">
                     <p>New Patient? <a href="patient-signup.html" class="font-semibold">Create an account</a></p>
-                    <p style="margin-top: 0.5rem; font-size: 0.8rem;">Staff accounts must be created by the
-                        Administrator.</p>
+                    <p style="margin-top: 0.5rem; font-size: 0.8rem; color: #94A3B8;">Staff accounts are created by the Administrator.</p>
                 </div>
             </div>
         </div>
 
-        <!-- Right Side: Hero Image and Context (Hidden on mobile) -->
         <div class="auth-hero-container">
             <img src="https://images.unsplash.com/photo-1516549655169-df83a0774514?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80"
                 alt="Medical Professional" class="hero-image">
@@ -71,21 +208,68 @@
                     AI-Powered Diagnostics
                 </div>
                 <h1>The Future of Healthcare Management.</h1>
-                <p>Streamline your clinical workflows, connect with patients seamlessly, and leverage intelligent
-                    diagnostic support.</p>
+                <p>Streamline clinical workflows, connect with patients seamlessly, and leverage intelligent diagnostic support.</p>
             </div>
         </div>
     </div>
 
-    <!-- Toast Container -->
+    <!-- Forgot Password Modal -->
+    <div class="forgot-modal-overlay" id="forgot-password-modal" onclick="handleForgotOverlayClick(event)">
+        <div class="forgot-modal-box">
+            <div class="forgot-modal-icon">
+                <i data-lucide="key-round" style="width:26px;height:26px;"></i>
+            </div>
+            <h3>Reset Your Password</h3>
+            <p>Enter your registered email address. We'll send you a link to reset your password right away.</p>
+            
+            <div class="form-group">
+                <label for="reset-email" class="form-label">
+                    <i data-lucide="mail" class="input-icon"></i> Email Address
+                </label>
+                <input type="email" id="reset-email" class="form-input" placeholder="name@clinic.com" autocomplete="email">
+            </div>
+
+            <div class="forgot-modal-actions">
+                <button type="button" class="btn-cancel-reset" onclick="closeForgotPassword()">Cancel</button>
+                <button type="button" id="send-reset-btn" onclick="sendPasswordReset()">
+                    <i data-lucide="send" style="width:15px;height:15px;"></i>
+                    Send Reset Link
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast-container" id="toast-container"></div>
 
-    <!-- Initialize Lucide Icons -->
     <script>
         lucide.createIcons();
+
+        // Password toggle
+        const toggleBtn = document.getElementById('toggle-password');
+        const passwordInput = document.getElementById('password');
+        const eyeIcon = document.getElementById('eye-icon');
+        if (toggleBtn && passwordInput) {
+            toggleBtn.addEventListener('click', () => {
+                const isPassword = passwordInput.type === 'password';
+                passwordInput.type = isPassword ? 'text' : 'password';
+                eyeIcon.setAttribute('data-lucide', isPassword ? 'eye-off' : 'eye');
+                lucide.createIcons();
+            });
+        }
+
+        // Modal overlay click to close
+        function handleForgotOverlayClick(e) {
+            if (e.target === document.getElementById('forgot-password-modal')) {
+                closeForgotPassword();
+            }
+        }
+
+        // Reset email on Enter key
+        document.getElementById('reset-email')?.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendPasswordReset();
+        });
     </script>
 
-    <!-- Firebase SDKs -->
     <script type="module" src="./js/firebase-config.js"></script>
     <script type="module" src="./js/auth.js"></script>
 </body>

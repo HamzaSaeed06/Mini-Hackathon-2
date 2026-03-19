@@ -413,7 +413,9 @@ function loadMyAppointments(uid) {
                 : '—';
 
             let category, categoryClass;
-            if (data.status === 'completed') {
+            if (data.status === 'cancelled') {
+                category = 'Cancelled'; categoryClass = 'cancelled';
+            } else if (data.status === 'completed') {
                 category = 'Completed'; categoryClass = 'completed';
             } else if (apptDate === today) {
                 category = 'Today'; categoryClass = 'pending';
@@ -440,8 +442,8 @@ function loadMyAppointments(uid) {
                     </td>
                     <td><span class="status-indicator-pill ${categoryClass}">${category}</span></td>
                     <td class="table-actions-cell">
-                        ${data.status !== 'completed' ? `<button class="btn-action-sm" onclick="cancelAppointment('${data.id}')" title="Cancel Appointment">
-                            <i data-lucide="trash-2"></i>
+                        ${(data.status !== 'completed' && data.status !== 'cancelled') ? `<button class="btn-action-sm danger" onclick="cancelAppointment('${data.id}')" title="Cancel Appointment">
+                            <i data-lucide="x"></i>
                         </button>` : ''}
                     </td>
                 </tr>
@@ -459,9 +461,9 @@ function loadMyAppointments(uid) {
                     <div class="staff-card-body">
                         <span class="status-indicator-pill ${categoryClass}">${category}</span>
                     </div>
-                    ${data.status !== 'completed' ? `<div class="staff-card-actions">
+                    ${(data.status !== 'completed' && data.status !== 'cancelled') ? `<div class="staff-card-actions">
                         <button class="btn-action-sm danger" onclick="cancelAppointment('${data.id}')">
-                            <i data-lucide="trash-2"></i> Cancel
+                            <i data-lucide="x"></i> Cancel
                         </button>
                     </div>` : ''}
                 </div>
@@ -595,12 +597,31 @@ if (bookForm) {
 
 // ── Cancel Appointment ────────────────────────────────────────
 window.cancelAppointment = async (id) => {
-    if (!confirm('Cancel this appointment?')) return;
+    const confirmed = await new Promise((resolve) => {
+        if (window.customConfirm) {
+            window.customConfirm(
+                'Are you sure you want to cancel this appointment? This action cannot be undone.',
+                () => resolve(true),
+                () => resolve(false),
+                { type: 'warning', confirmText: 'Yes, Cancel' }
+            );
+        } else {
+            resolve(confirm('Cancel this appointment?'));
+        }
+    });
+
+    if (!confirmed) return;
+
     try {
-        await deleteDoc(doc(db, 'appointments', id));
+        await updateDoc(doc(db, 'appointments', id), {
+            status: 'cancelled',
+            cancelledAt: serverTimestamp(),
+            cancelledBy: 'patient'
+        });
+        showToast('Appointment cancelled successfully.', 'success');
     } catch (err) {
         console.error(err);
-        showToast('Failed to cancel.', 'error');
+        showToast('Failed to cancel appointment. Please try again.', 'error');
     }
 };
 
@@ -612,9 +633,20 @@ window.askAi = async () => {
 
     addChatMessage('user', msg);
     input.value = '';
+    input.disabled = true;
 
+    // Show typing indicator
+    const typingId = addTypingIndicator();
+
+    // Simulate AI thinking delay (600-1200ms)
+    const delay = 600 + Math.random() * 600;
+    await new Promise(r => setTimeout(r, delay));
+
+    removeTypingIndicator(typingId);
     const response = simulateAiResponse(msg);
     addChatMessage('ai', response);
+    input.disabled = false;
+    input.focus();
 };
 
 window.explainDiagnosis = (apptId) => {
@@ -661,9 +693,47 @@ function typeText(text) {
 
 function simulateAiResponse(userMsg) {
     const q = userMsg.toLowerCase();
-    if (q.includes('hello') || q.includes('hi')) return "Hello! I'm your health assistant. I can explain your records or answer medical questions.";
-    if (q.includes('diagnosis')) return "Based on your records, your most recent diagnosis was handled by your specialist. I can explain the terminology if you'd like.";
-    return "That's a great question. While I'm an AI, I suggest discussing specific symptoms with your doctor during your next visit. Would you like to book one now?";
+
+    if (q.includes('hello') || q.includes('hi') || q.includes('hey'))
+        return `Hello! I'm your personal health assistant. I can help you understand your medical records, explain diagnoses, answer general health questions, or help you prepare for your next visit. What would you like to know?`;
+
+    if (q.includes('diagnosis') || q.includes('diagnos'))
+        return `Based on your records, I can see you have had ${medicalRecords.length} consultation(s) with our doctors. Your most recent diagnosis was <strong>${medicalRecords[0]?.diagnosis || 'not yet available'}</strong>. Would you like me to explain what this means in simple terms?`;
+
+    if (q.includes('medicine') || q.includes('medication') || q.includes('drug') || q.includes('pill'))
+        return `Your most recently prescribed medications include: <strong>${(medicalRecords[0]?.medicines || []).join(', ') || 'None recorded yet'}</strong>. Always take your medicines as directed by your doctor, with or without food as specified. Never skip a dose or stop without consulting your doctor first.`;
+
+    if (q.includes('appointment') || q.includes('book') || q.includes('schedule'))
+        return `You can book a new appointment from the <strong>Book Appointment</strong> section in the sidebar. Select your preferred doctor, date, and time. Our team will confirm your slot. If you need urgent care, please call the clinic directly.`;
+
+    if (q.includes('cancel'))
+        return `To cancel an appointment, go to <strong>My Appointments</strong> section and click the cancel button on the appointment you wish to remove. Please cancel at least 24 hours in advance to help other patients get the slot.`;
+
+    if (q.includes('fever') || q.includes('temperature'))
+        return `For fever: rest, stay hydrated with plenty of fluids, and take Paracetamol 500mg every 6 hours as needed. If your fever is above 39°C (102°F), lasts more than 3 days, or is accompanied by a stiff neck or severe headache, please visit the clinic immediately.`;
+
+    if (q.includes('headache') || q.includes('head pain'))
+        return `For mild to moderate headaches: rest in a quiet, dark room, apply a cool compress, and take Ibuprofen 400mg (with food) or Paracetamol 500mg. Stay hydrated. If the headache is sudden and severe, or with vision changes, seek emergency care.`;
+
+    if (q.includes('blood pressure') || q.includes('bp') || q.includes('hypertension'))
+        return `Normal blood pressure is around 120/80 mmHg. To manage high blood pressure: reduce salt intake, exercise regularly, limit alcohol and caffeine, and take your prescribed medication consistently. Do not skip doses even when you feel fine.`;
+
+    if (q.includes('diabetes') || q.includes('sugar') || q.includes('blood sugar'))
+        return `For diabetes management: monitor your blood glucose daily, take medications as prescribed, follow a low-sugar diet, exercise for 30 minutes daily, and attend regular HbA1c check-ups every 3 months. Avoid skipping meals.`;
+
+    if (q.includes('cough') || q.includes('cold') || q.includes('flu'))
+        return `For cough and cold: rest, drink warm fluids (honey + ginger tea), take Paracetamol for fever, and use a humidifier if available. Ambroxol syrup can help loosen mucus. See a doctor if symptoms persist beyond 7 days or if you develop chest pain or difficulty breathing.`;
+
+    if (q.includes('history') || q.includes('records') || q.includes('past'))
+        return `You have <strong>${medicalRecords.length} completed consultation(s)</strong> on record. You can view your full medical history with diagnoses, medications, and doctor's findings in the <strong>Medical History</strong> section of your dashboard.`;
+
+    if (q.includes('thank'))
+        return `You're very welcome! Your health is our priority at CareSync. If you have any more questions or need to book an appointment, I'm here to help. Stay well! 🌿`;
+
+    if (q.includes('emergency') || q.includes('urgent'))
+        return `⚠️ If this is a medical emergency, please call <strong>115 (Rescue)</strong> immediately or go to your nearest emergency room. Do not delay seeking help for chest pain, difficulty breathing, severe bleeding, or loss of consciousness.`;
+
+    return `That's a good question. While I can provide general health information, for specific medical advice regarding your condition, it's always best to consult with your doctor. Would you like help booking an appointment or viewing your medical records?`;
 }
 
 // ── Direct ID Card Download (No Preview) ─────────────────────

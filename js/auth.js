@@ -1,15 +1,17 @@
 import { auth, db } from './firebase-config.js';
-import { signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+import { 
+    signInWithEmailAndPassword, 
+    onAuthStateChanged,
+    sendPasswordResetEmail
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// DOM Elements
 const loginForm = document.getElementById('login-form');
 const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const loginBtn = document.getElementById('login-btn');
 const loginLoader = document.getElementById('login-loader');
 
-// Toast Notification
 function showToast(message, type = 'success') {
     const toastContainer = document.getElementById('toast-container');
     if (!toastContainer) return;
@@ -17,8 +19,7 @@ function showToast(message, type = 'success') {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
 
-    // Using Lucide icons syntax inside toast
-    const iconName = type === 'success' ? 'check-circle-2' : 'alert-circle';
+    const iconName = type === 'success' ? 'check-circle-2' : type === 'info' ? 'info' : 'alert-circle';
 
     toast.innerHTML = `
         <i data-lucide="${iconName}"></i>
@@ -27,25 +28,20 @@ function showToast(message, type = 'success') {
 
     toastContainer.appendChild(toast);
 
-    // Re-initialize icons for newly added elements
     if (typeof lucide !== 'undefined') {
         lucide.createIcons({ root: toast });
     }
 
-    // Trigger animation
     setTimeout(() => toast.classList.add('show'), 10);
 
-    // Remove after 3 seconds
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 400);
-    }, 3000);
+    }, 4000);
 }
 
-// Check if user is already logged in
 onAuthStateChanged(auth, async (user) => {
     if (user) {
-        // Show loader if login button exists
         if (loginBtn && loginLoader) {
             const btnText = loginBtn.querySelector('.btn-text');
             const btnIcon = loginBtn.querySelector('.btn-icon');
@@ -81,7 +77,6 @@ onAuthStateChanged(auth, async (user) => {
     }
 });
 
-// Handle Login
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -94,7 +89,6 @@ if (loginForm) {
             return;
         }
 
-        // Show loader, hide text/icon
         const btnText = loginBtn.querySelector('.btn-text');
         const btnIcon = loginBtn.querySelector('.btn-icon');
         if (btnText) btnText.classList.add('hidden');
@@ -106,7 +100,6 @@ if (loginForm) {
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
 
-            // Fetch user role from Firestore
             const userDocRef = doc(db, 'users', user.uid);
             const userDoc = await getDoc(userDocRef);
 
@@ -118,7 +111,6 @@ if (loginForm) {
                 localStorage.setItem('userRole', role);
                 localStorage.setItem('userName', userData.name);
 
-                // Redirect based on role
                 setTimeout(() => {
                     if (role === 'admin') window.location.href = 'admin/dashboard.html';
                     else if (role === 'doctor') window.location.href = 'doctor/dashboard.html';
@@ -128,15 +120,23 @@ if (loginForm) {
                         showToast('Invalid role assigned to user', 'error');
                         resetLoginButton();
                     }
-                }, 1500);
+                }, 1200);
             } else {
-                showToast('User record not found in database', 'error');
+                showToast('User record not found. Contact administrator.', 'error');
                 resetLoginButton();
             }
         } catch (error) {
-            let errorMsg = 'Login failed. Please try again.';
-            if (error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                errorMsg = 'Invalid email or password';
+            let errorMsg = 'Login failed. Please check your credentials.';
+            if (
+                error.code === 'auth/invalid-credential' ||
+                error.code === 'auth/user-not-found' ||
+                error.code === 'auth/wrong-password'
+            ) {
+                errorMsg = 'Invalid email or password. Please try again.';
+            } else if (error.code === 'auth/too-many-requests') {
+                errorMsg = 'Too many failed attempts. Please try again later.';
+            } else if (error.code === 'auth/network-request-failed') {
+                errorMsg = 'Network error. Check your internet connection.';
             }
             showToast(errorMsg, 'error');
             resetLoginButton();
@@ -152,3 +152,70 @@ function resetLoginButton() {
     loginLoader.classList.add('hidden');
     loginBtn.disabled = false;
 }
+
+// ── Forgot Password Handler ──────────────────────────────────
+window.openForgotPassword = () => {
+    const modal = document.getElementById('forgot-password-modal');
+    if (modal) {
+        modal.classList.add('active');
+        const resetEmailInput = document.getElementById('reset-email');
+        if (resetEmailInput && emailInput?.value) {
+            resetEmailInput.value = emailInput.value;
+        }
+        if (resetEmailInput) resetEmailInput.focus();
+    }
+};
+
+window.closeForgotPassword = () => {
+    const modal = document.getElementById('forgot-password-modal');
+    if (modal) modal.classList.remove('active');
+};
+
+window.sendPasswordReset = async () => {
+    const resetEmailInput = document.getElementById('reset-email');
+    const sendBtn = document.getElementById('send-reset-btn');
+    
+    if (!resetEmailInput) return;
+    
+    const email = resetEmailInput.value.trim();
+    if (!email) {
+        showToast('Please enter your email address.', 'error');
+        return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        showToast('Please enter a valid email address.', 'error');
+        return;
+    }
+
+    const originalText = sendBtn.innerHTML;
+    sendBtn.innerHTML = `<div class="loader-spinner" style="position:relative;left:auto;top:auto;margin:0;border-top-color:white;width:18px;height:18px;"></div> Sending...`;
+    sendBtn.disabled = true;
+
+    try {
+        await sendPasswordResetEmail(auth, email);
+        showToast('Password reset email sent! Check your inbox.', 'success');
+        window.closeForgotPassword();
+        resetEmailInput.value = '';
+    } catch (error) {
+        let msg = 'Failed to send reset email.';
+        if (error.code === 'auth/user-not-found') {
+            msg = 'No account found with this email address.';
+        } else if (error.code === 'auth/invalid-email') {
+            msg = 'Invalid email address format.';
+        } else if (error.code === 'auth/too-many-requests') {
+            msg = 'Too many requests. Please wait before trying again.';
+        }
+        showToast(msg, 'error');
+    } finally {
+        sendBtn.innerHTML = originalText;
+        sendBtn.disabled = false;
+    }
+};
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        window.closeForgotPassword?.();
+    }
+});

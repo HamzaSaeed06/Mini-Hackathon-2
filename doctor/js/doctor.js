@@ -422,29 +422,124 @@ function renderApptPage() {
 window.rapidAiAssist = async () => {
     const findings = document.getElementById('finding-text').value.trim();
     if (!findings) return showToast('Please describe symptoms first for AI to analyze.', 'warning');
-    
+
+    const btn = document.querySelector('[onclick="rapidAiAssist()"]');
+    if (btn) { btn.disabled = true; btn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Analyzing...`; if (window.lucide) lucide.createIcons(); }
+
     showToast('AI is analyzing symptoms...', 'info');
-    
-    const diagnostics = [
-        { d: "Common Flu", m: "Panadol, Arinac, Vita-C" },
-        { d: "Bacterial Infection", m: "Amoxicillin, Panadol" },
-        { d: "Allergic Rhinitis", m: "Softin, Nasal Spray" },
-        { d: "Viral Fever", m: "Paracetamol, Hydration" }
-    ];
-    const pick = diagnostics[Math.floor(Math.random() * diagnostics.length)];
-    
-    document.getElementById('diagnosis-input').value = pick.d;
-    document.getElementById('medicines-input').value = pick.m;
-    
-    showToast('AI Suggestion applied!', 'success');
+
+    await new Promise(r => setTimeout(r, 800));
+
+    const text = findings.toLowerCase();
+    const has = (kws) => kws.some(k => text.includes(k));
+
+    let diagnosis = '';
+    let medicines = '';
+
+    if (has(['fever', 'flu', 'cold', 'runny nose', 'nasal', 'sneezing', 'chills', 'body ache'])) {
+        diagnosis = 'Viral Upper Respiratory Infection (Flu)';
+        medicines = 'Paracetamol 500mg every 6 hrs, Arinac Forte 1 tab twice daily, Vitamin C 500mg once daily';
+    } else if (has(['sore throat', 'tonsil', 'throat pain', 'strep', 'pharyngitis'])) {
+        diagnosis = 'Bacterial Pharyngitis / Tonsillitis';
+        medicines = 'Amoxicillin 500mg 8-hrly x5 days, Paracetamol 500mg PRN, Strepsils lozenges';
+    } else if (has(['cough', 'chest congestion', 'phlegm', 'mucus', 'bronchitis', 'wheeze'])) {
+        diagnosis = 'Acute Bronchitis / Productive Cough';
+        medicines = 'Ambroxol 30mg twice daily, Salbutamol inhaler if wheeze present, Steam inhalation twice daily';
+    } else if (has(['stomach', 'vomit', 'diarrhea', 'loose motion', 'nausea', 'gastroenteritis', 'abdominal pain'])) {
+        diagnosis = 'Acute Gastroenteritis';
+        medicines = 'ORS sachets every 4 hrs, Metronidazole 400mg 3x daily x5 days, Domperidone 10mg before meals';
+    } else if (has(['headache', 'migraine', 'head pain', 'tension headache'])) {
+        diagnosis = 'Tension Headache / Migraine';
+        medicines = 'Ibuprofen 400mg with food, Paracetamol 500mg PRN, Rest in quiet dark room';
+    } else if (has(['allergy', 'rash', 'itch', 'hives', 'urticaria', 'skin reaction'])) {
+        diagnosis = 'Allergic Reaction / Urticaria';
+        medicines = 'Cetirizine 10mg once daily at night, Hydrocortisone cream topically, Avoid allergen trigger';
+    } else if (has(['diabetes', 'sugar', 'blood sugar', 'hyperglycemia', 'fasting glucose'])) {
+        diagnosis = 'Type 2 Diabetes — Review Visit';
+        medicines = 'Metformin 500mg twice daily with meals, HbA1c test in 3 months, Monitor fasting glucose daily';
+    } else if (has(['bp', 'blood pressure', 'hypertension', 'hypertensive'])) {
+        diagnosis = 'Hypertension';
+        medicines = 'Amlodipine 5mg once daily morning, Low-sodium diet, Lifestyle modification counselled';
+    } else if (has(['back pain', 'lumbar', 'spine', 'muscle strain', 'sciatica'])) {
+        diagnosis = 'Musculoskeletal Back Pain';
+        medicines = 'Diclofenac 75mg twice daily with food, Muscle relaxant Methocarbamol 750mg twice daily, Hot compress + rest';
+    } else if (has(['joint pain', 'arthritis', 'swollen joint', 'knee pain', 'gout'])) {
+        diagnosis = 'Arthralgia / Arthritis';
+        medicines = 'Ibuprofen 400mg 3x daily with meals, Physiotherapy referral, Joint support if needed';
+    } else if (has(['urinary', 'uti', 'burning urine', 'frequent urination', 'dysuria'])) {
+        diagnosis = 'Urinary Tract Infection (UTI)';
+        medicines = 'Ciprofloxacin 500mg twice daily x5 days, Increase water intake >2L/day, Urinalysis follow-up';
+    } else if (has(['anxiety', 'stress', 'panic', 'mental health', 'depression', 'insomnia'])) {
+        diagnosis = 'Anxiety / Stress Disorder';
+        medicines = 'Escitalopram 10mg once daily (review in 2 weeks), CBT referral recommended, Lifestyle counselling';
+    } else if (has(['wound', 'cut', 'laceration', 'injury', 'bruise', 'trauma'])) {
+        diagnosis = 'Minor Trauma / Wound Care';
+        medicines = 'Amoxicillin-Clavulanate 625mg twice daily if infected, Tetanus prophylaxis if needed, Dressing change daily';
+    } else {
+        diagnosis = 'General Medical Assessment Required';
+        medicines = 'Paracetamol 500mg PRN for symptomatic relief, Full clinical examination required, Further investigation recommended';
+    }
+
+    document.getElementById('diagnosis-input').value = diagnosis;
+    document.getElementById('medicines-input').value = medicines;
+
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<i data-lucide="wand-2"></i> AI Assist`;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    showToast('AI diagnosis applied based on symptoms!', 'success');
 };
 
-window.openDiagnosis = (apptId, patientName) => {
+window.openDiagnosis = async (apptId, patientName) => {
     document.getElementById('active-appt-id').value = apptId;
-    activePatientName = patientName; // Store name for prescription
+    activePatientName = patientName;
     document.getElementById('diagnosis-modal').classList.add('active');
-    // Clear previous
     document.getElementById('diagnosis-form').reset();
+
+    // Reset info strip
+    const strip = document.getElementById('modal-patient-info-strip');
+    const subtitle = document.getElementById('modal-patient-subtitle');
+    if (subtitle) subtitle.textContent = 'Loading patient info...';
+    if (strip) strip.style.display = 'none';
+
+    try {
+        const apptSnap = await getDoc(doc(db, 'appointments', apptId));
+        if (apptSnap.exists()) {
+            const appt = apptSnap.data();
+
+            // Store patient id for PDF
+            const patIdInput = document.getElementById('active-patient-id');
+            if (patIdInput) patIdInput.value = appt.patientId || '';
+
+            // Populate info strip
+            const nameTag = document.getElementById('modal-patient-name-tag');
+            const demog = document.getElementById('modal-patient-demog');
+            const apptDate = document.getElementById('modal-appt-date');
+
+            if (nameTag) nameTag.textContent = appt.patientName || patientName;
+            if (demog) {
+                const age = appt.patientAge ? `${appt.patientAge} yrs` : 'N/A';
+                const gender = appt.patientGender || 'N/A';
+                demog.textContent = `${age} / ${gender}`;
+            }
+            if (apptDate) {
+                const dateStr = appt.date
+                    ? new Date(appt.date + 'T00:00:00').toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' })
+                    : 'N/A';
+                apptDate.textContent = `${dateStr}${appt.time ? ' at ' + appt.time : ''}`;
+            }
+
+            if (strip) strip.style.display = 'block';
+            if (subtitle) subtitle.textContent = `${appt.patientName || patientName}`;
+
+            if (window.lucide) lucide.createIcons();
+        }
+    } catch (err) {
+        console.warn('Could not load appointment info:', err.message);
+        if (subtitle) subtitle.textContent = patientName;
+    }
 };
 
 window.closeModal = (id) => {
@@ -523,14 +618,28 @@ async function loadPersonalStats(doctorId) {
 window.saveDiagnosis = async () => {
     const apptId = document.getElementById('active-appt-id').value;
     const diagnosis = document.getElementById('diagnosis-input').value.trim();
-    const medicines = document.getElementById('medicines-input').value.split(',').map(m => m.trim());
+    const medicinesRaw = document.getElementById('medicines-input').value.trim();
     const findings = document.getElementById('finding-text').value.trim();
 
-    if (!diagnosis) return showToast('Please enter a diagnosis.', 'warning');
+    if (!diagnosis) return showToast('Please enter a diagnosis before saving.', 'warning');
+    if (!apptId) return showToast('No appointment selected.', 'error');
+
+    const saveBtn = document.querySelector('[onclick="saveDiagnosis()"]');
+    const originalBtnHTML = saveBtn ? saveBtn.innerHTML : '';
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Saving...`;
+        if (window.lucide) lucide.createIcons();
+    }
+
+    const medicines = medicinesRaw ? medicinesRaw.split(',').map(m => m.trim()).filter(Boolean) : [];
 
     try {
-        const docRef = doc(db, 'appointments', apptId);
-        await updateDoc(docRef, {
+        // Get appointment data for complete prescription
+        const apptSnap = await getDoc(doc(db, 'appointments', apptId));
+        const apptData = apptSnap.exists() ? apptSnap.data() : {};
+
+        await updateDoc(doc(db, 'appointments', apptId), {
             status: 'completed',
             diagnosis,
             medicines,
@@ -538,25 +647,41 @@ window.saveDiagnosis = async () => {
             completedAt: serverTimestamp()
         });
 
-        // Also add to a general 'diagnosisLogs' for Admin analytics
+        // Add to diagnosisLogs for Admin analytics
         await setDoc(doc(collection(db, 'diagnosisLogs')), {
             appointmentId: apptId,
-            symptoms: diagnosis, // Using diagnosis as the primary 'disease' for admin charts
+            symptoms: findings || diagnosis,
+            diagnosis,
+            patientId: apptData.patientId || '',
+            patientName: apptData.patientName || activePatientName || '',
             doctorId: auth.currentUser.uid,
             createdAt: serverTimestamp()
         });
 
-        showToast('Appointment completed and prescription saved!', 'success');
-        generatePrescriptionPDF({
-            patientName: activePatientName || 'Patient',
+        showToast('Prescription saved! Generating PDF...', 'success');
+        closeModal('diagnosis-modal');
+
+        // Generate professional PDF
+        await generatePrescriptionPDF({
+            patientName: apptData.patientName || activePatientName || 'Patient',
+            patientAge: apptData.patientAge || '',
+            patientGender: apptData.patientGender || '',
+            doctorName: userData?.name || 'Doctor',
+            specialization: userData?.specialization || 'General Physician',
             diagnosis,
             medicines,
             findings
         });
-        closeModal('diagnosis-modal');
+
     } catch (e) {
-        console.error(e);
-        showToast('Failed to save diagnosis.', 'error');
+        console.error('Save diagnosis error:', e);
+        showToast('Failed to save diagnosis. Please try again.', 'error');
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalBtnHTML;
+            if (window.lucide) lucide.createIcons();
+        }
     }
 };
 
@@ -1083,53 +1208,185 @@ window.resetHistoryFilter = () => {
 
 // ── PDF Prescription Generator ──────────────────────────────────
 async function generatePrescriptionPDF(data) {
+    if (!window.jspdf) {
+        showToast('PDF library not loaded. Please refresh and try again.', 'error');
+        return;
+    }
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const pdf = new jsPDF({ unit: 'mm', format: 'a4' });
+    const pageW = 210;
+    const pageH = 297;
+    const margin = 20;
+    const contentW = pageW - margin * 2;
 
-    // Header
-    doc.setFontSize(22);
-    doc.setTextColor(79, 70, 229); // Indigo #4f46e5
-    doc.text("CareSync AI Clinic", 20, 20);
+    // ── Header Background ──
+    pdf.setFillColor(37, 99, 235); // #2563EB
+    pdf.rect(0, 0, pageW, 38, 'F');
 
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text("Digital Prescription - Smart Healthcare", 20, 28);
-    doc.line(20, 32, 190, 32);
+    // ── Brand Name ──
+    pdf.setFontSize(18);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('CareSync AI', margin, 16);
 
-    // Patient Info
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-    doc.text(`Patient: ${data.patientName}`, 20, 45);
-    doc.text(`Date: ${new Date().toLocaleDateString()}`, 150, 45);
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(180, 210, 255);
+    pdf.text('Smart Healthcare Management System', margin, 23);
 
-    // Diagnosis
-    doc.setFontSize(14);
-    doc.text("Diagnosis:", 20, 60);
-    doc.setFontSize(12);
-    doc.text(data.diagnosis || "N/A", 25, 68);
+    // ── Prescription Title (right-aligned) ──
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('DIGITAL PRESCRIPTION', pageW - margin, 16, { align: 'right' });
 
-    // Medicines
-    doc.setFontSize(14);
-    doc.text("Prescribed Medicines:", 20, 85);
-    doc.setFontSize(12);
-    let y = 93;
-    data.medicines.forEach((med, i) => {
-        doc.text(`${i + 1}. ${med}`, 25, y);
+    const today = new Date();
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(180, 210, 255);
+    pdf.text(`Date: ${today.toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' })}`, pageW - margin, 23, { align: 'right' });
+
+    // ── Doctor Info Section ──
+    let y = 50;
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(`Dr. ${data.doctorName || 'Attending Physician'}`, margin, y);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text(data.specialization || 'General Physician', margin, y + 6);
+
+    // ── Divider ──
+    y += 16;
+    pdf.setDrawColor(226, 232, 240);
+    pdf.setLineWidth(0.5);
+    pdf.line(margin, y, pageW - margin, y);
+    y += 8;
+
+    // ── Patient Info Box ──
+    pdf.setFillColor(248, 250, 252);
+    pdf.setDrawColor(226, 232, 240);
+    pdf.roundedRect(margin, y, contentW, 24, 3, 3, 'FD');
+
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(100, 116, 139);
+    pdf.text('PATIENT', margin + 6, y + 6);
+    pdf.text('AGE', margin + 80, y + 6);
+    pdf.text('GENDER', margin + 110, y + 6);
+
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(data.patientName || 'Patient', margin + 6, y + 14);
+    pdf.text(data.patientAge ? `${data.patientAge} yrs` : '—', margin + 80, y + 14);
+    pdf.text(data.patientGender || '—', margin + 110, y + 14);
+
+    y += 32;
+
+    // ── Diagnosis Section ──
+    pdf.setFillColor(239, 246, 255);
+    pdf.setDrawColor(147, 197, 253);
+    pdf.roundedRect(margin, y, contentW, 20, 3, 3, 'FD');
+
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(37, 99, 235);
+    pdf.text('DIAGNOSIS', margin + 6, y + 6);
+
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(15, 23, 42);
+    const dxLines = pdf.splitTextToSize(data.diagnosis || 'General Medical Assessment', contentW - 12);
+    pdf.text(dxLines, margin + 6, y + 14);
+    y += 28;
+
+    // ── Findings ──
+    if (data.findings && data.findings.trim()) {
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(71, 85, 105);
+        pdf.text('CLINICAL FINDINGS', margin, y);
+        y += 6;
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.setTextColor(51, 65, 85);
+        const findingLines = pdf.splitTextToSize(data.findings, contentW);
+        pdf.text(findingLines, margin, y);
+        y += findingLines.length * 5 + 8;
+    }
+
+    // ── Medicines ──
+    pdf.setFontSize(9);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(71, 85, 105);
+    pdf.text('PRESCRIBED MEDICATIONS', margin, y);
+    y += 6;
+
+    const meds = Array.isArray(data.medicines) ? data.medicines : (data.medicines || '').split(',').map(m => m.trim()).filter(Boolean);
+
+    if (meds.length === 0) {
+        pdf.setFont('helvetica', 'italic');
+        pdf.setTextColor(148, 163, 184);
+        pdf.text('No medications prescribed.', margin, y);
         y += 8;
+    } else {
+        meds.forEach((med, i) => {
+            pdf.setFillColor(i % 2 === 0 ? 250 : 255, i % 2 === 0 ? 250 : 255, i % 2 === 0 ? 250 : 255);
+            pdf.rect(margin, y - 4, contentW, 9, 'F');
+
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFontSize(9);
+            pdf.setTextColor(37, 99, 235);
+            pdf.text(`${i + 1}.`, margin + 2, y + 1);
+
+            pdf.setFont('helvetica', 'normal');
+            pdf.setTextColor(15, 23, 42);
+            const medLine = pdf.splitTextToSize(med, contentW - 14);
+            pdf.text(medLine, margin + 10, y + 1);
+            y += medLine.length * 5 + 4;
+        });
+    }
+
+    y += 6;
+
+    // ── Separator ──
+    pdf.setDrawColor(226, 232, 240);
+    pdf.line(margin, y, pageW - margin, y);
+    y += 8;
+
+    // ── Instructions ──
+    pdf.setFontSize(8);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(71, 85, 105);
+    pdf.text('GENERAL INSTRUCTIONS', margin, y);
+    y += 5;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(100, 116, 139);
+    const instructions = [
+        '• Take medications as prescribed by your doctor.',
+        '• Do not skip doses. Complete the full course of antibiotics.',
+        '• If symptoms worsen or new symptoms appear, consult immediately.',
+        '• Store medicines away from heat and direct sunlight.'
+    ];
+    instructions.forEach(line => {
+        pdf.text(line, margin, y);
+        y += 5;
     });
 
-    // Instructions
-    doc.setFontSize(14);
-    doc.text("Instructions:", 20, y + 10);
-    doc.setFontSize(12);
-    doc.text(data.findings || "Take as prescribed by doctor.", 25, y + 18);
+    // ── Footer ──
+    y = pageH - 20;
+    pdf.setDrawColor(226, 232, 240);
+    pdf.line(margin, y - 4, pageW - margin, y - 4);
 
-    // Footer
-    doc.setFontSize(10);
-    doc.setTextColor(150);
-    doc.text("Generated by CareSync AI Diagnostic Tool", 20, 280);
+    pdf.setFontSize(7);
+    pdf.setFont('helvetica', 'normal');
+    pdf.setTextColor(148, 163, 184);
+    pdf.text('Generated by CareSync AI Healthcare Management System', margin, y);
+    pdf.text(`Ref: CSX-${Date.now().toString().slice(-8)}`, pageW - margin, y, { align: 'right' });
 
-    doc.save(`Prescription_${data.patientName.replace(/\s/g, '_')}.pdf`);
+    pdf.save(`CareSync_Prescription_${(data.patientName || 'Patient').replace(/\s/g, '_')}_${today.toISOString().split('T')[0]}.pdf`);
 }
 
 window.clearDiagnosisForm = () => {

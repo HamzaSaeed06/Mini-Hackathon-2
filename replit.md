@@ -31,3 +31,14 @@ Configured as a **static** deployment with `publicDir: "."`.
 
 ## Firebase Configuration
 Firebase credentials are in `js/firebase-config.js`. Update with your Firebase project credentials before deploying.
+
+## Key Features & Changes (Latest)
+- **Login Page:** Forgot password modal, show/hide password toggle, improved error handling
+- **Patient Registration (Reception):** Firebase Auth account creation via REST API, default password `CareSync@123`, credentials display box, phone field
+- **Doctor AI Assist:** 13+ condition symptom-keyword matching (flu, headache, BP, diabetes, etc.)
+- **Prescription PDF:** Full professional A4 layout with colored header, patient info box, diagnosis box, medicine list, reference number, general instructions footer
+- **saveDiagnosis:** Fetches appointment data for complete patient demographics in PDF, loading state on save button, diagnosisLogs written for admin analytics
+- **Patient Appointment Cancellation:** Uses `updateDoc` to mark as `cancelled` (not deleted), custom confirm dialog, proper toast feedback
+- **Patient AI Assistant:** Smart contextual responses using medical records data, 15+ intent patterns (fever, BP, diabetes, emergency, etc.), typing indicator animation
+- **Status Pills:** `cancelled` and `scheduled` CSS styles added globally
+- **Cloudinary:** Upload preset `Ai Clinic` on account `ds05q0lls`

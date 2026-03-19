@@ -194,44 +194,74 @@
 
             <!-- REGISTER PATIENT SECTION -->
             <section id="register-patient-section" class="content-section">
-                <div class="glass-panel" style="max-width: 700px; margin: 0 auto; padding: 2.5rem;">
-                    <h3 class="chart-title" style="margin-bottom: 2rem;">Register New Patient</h3>
+                <div class="glass-panel" style="max-width: 680px; margin: 0 auto; padding: 2.5rem;">
+                    <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:2rem;">
+                        <div style="width:44px;height:44px;background:var(--primary-light);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;">
+                            <i data-lucide="user-plus" style="width:22px;height:22px;"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size:1.1rem;font-weight:700;margin:0;">Register New Patient</h3>
+                            <p style="font-size:0.8rem;color:var(--text-muted);margin:0;">Creates a secure login account for the patient.</p>
+                        </div>
+                    </div>
+
+                    <!-- Credentials Box (shown after successful registration) -->
+                    <div id="patient-credentials-box" style="display:none;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:1.25rem 1.5rem;margin-bottom:1.5rem;align-items:flex-start;gap:1rem;">
+                        <div style="color:#16A34A;flex-shrink:0;margin-top:2px;"><i data-lucide="check-circle-2" style="width:22px;height:22px;"></i></div>
+                        <div style="flex:1;">
+                            <p style="font-weight:700;color:#15803D;margin-bottom:0.5rem;">Patient account created successfully!</p>
+                            <p style="font-size:0.85rem;color:#166534;margin-bottom:0.25rem;">Share these login credentials with the patient:</p>
+                            <div style="background:white;border-radius:8px;padding:0.75rem 1rem;border:1px solid #BBF7D0;margin-top:0.5rem;">
+                                <div style="display:flex;gap:1rem;flex-wrap:wrap;">
+                                    <div>
+                                        <span style="font-size:0.7rem;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;">Email</span>
+                                        <p id="cred-email" style="font-weight:600;font-size:0.9rem;margin:0;color:#0F172A;font-family:monospace;"></p>
+                                    </div>
+                                    <div>
+                                        <span style="font-size:0.7rem;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:0.05em;">Password</span>
+                                        <p id="cred-password" style="font-weight:600;font-size:0.9rem;margin:0;color:#0F172A;font-family:monospace;"></p>
+                                    </div>
+                                </div>
+                            </div>
+                            <button onclick="document.getElementById('patient-credentials-box').style.display='none'" style="margin-top:0.75rem;background:none;border:none;color:#16A34A;font-size:0.8rem;cursor:pointer;padding:0;font-weight:600;">✕ Dismiss</button>
+                        </div>
+                    </div>
+
                     <form id="register-patient-form">
                         <div class="form-grid">
                             <div class="form-group">
-                                <label class="form-label"><i data-lucide="user" class="input-icon"></i> Full
-                                    Name</label>
-                                <input type="text" id="patient-name" class="form-input" placeholder="Enter patient name"
-                                    required>
+                                <label class="form-label"><i data-lucide="user" class="input-icon"></i> Full Name</label>
+                                <input type="text" id="patient-name" class="form-input" placeholder="Enter full name" required autocomplete="off">
                             </div>
                             <div class="form-group">
-                                <label class="form-label"><i data-lucide="mail" class="input-icon"></i> Email
-                                    Address</label>
-                                <input type="email" id="patient-email" class="form-input"
-                                    placeholder="Email for records" required>
+                                <label class="form-label"><i data-lucide="mail" class="input-icon"></i> Email Address</label>
+                                <input type="email" id="patient-email" class="form-input" placeholder="patient@email.com" required autocomplete="off">
                             </div>
                             <div class="form-group">
                                 <label class="form-label"><i data-lucide="hash" class="input-icon"></i> Age</label>
-                                <input type="number" id="patient-age" class="form-input" placeholder="e.g. 25" required>
+                                <input type="number" id="patient-age" class="form-input" placeholder="e.g. 35" min="1" max="120" required>
                             </div>
                             <div class="form-group">
                                 <label class="form-label"><i data-lucide="users" class="input-icon"></i> Gender</label>
                                 <select id="patient-gender" class="form-input" required>
+                                    <option value="">Select gender</option>
                                     <option value="Male">Male</option>
                                     <option value="Female">Female</option>
                                     <option value="Other">Other</option>
                                 </select>
                             </div>
-                            <div class="form-group" style="grid-column: span 2;">
-                                <label class="form-label"><i data-lucide="lock" class="input-icon"></i> Temporary
-                                    Password</label>
-                                <input type="text" id="patient-password" class="form-input" value="Patient123" readonly>
-                                <p class="text-muted" style="font-size: 0.75rem; margin-top: 0.5rem;">Patients can
-                                    change this on first login.</p>
+                            <div class="form-group">
+                                <label class="form-label"><i data-lucide="phone" class="input-icon"></i> Phone (Optional)</label>
+                                <input type="tel" id="patient-phone" class="form-input" placeholder="+92 3xx xxxxxxx">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label"><i data-lucide="lock" class="input-icon"></i> Default Password</label>
+                                <input type="text" class="form-input" value="CareSync@123" readonly style="color:var(--text-muted);background:#F1F5F9;">
+                                <p class="form-hint">Patient can change this after first login.</p>
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-primary" style="margin-top: 2rem; width: 100%;">
-                            <i data-lucide="user-check"></i> Complete Registration
+                        <button type="submit" class="btn btn-primary" style="margin-top:1.5rem;width:100%;">
+                            <i data-lucide="user-check"></i> <span class="btn-text">Complete Registration</span>
                         </button>
                     </form>
                 </div>
