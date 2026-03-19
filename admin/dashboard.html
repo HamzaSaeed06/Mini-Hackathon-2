@@ -3,14 +3,15 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Dashboard | CareSync System</title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/profile.css">
     <link rel="stylesheet" href="../css/id-card.css">
+    <link rel="stylesheet" href="../css/smart-scheduling.css">
+    <link rel="stylesheet" href="../css/visual-excellence.css">
+    <link rel="stylesheet" href="css/admin.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -56,6 +57,10 @@
                 <i data-lucide="calendar"></i>
                 <span>Appointments</span>
             </div>
+            <div class="nav-item" data-target="smart-scheduling-section" data-title="Smart Scheduling">
+                <i data-lucide="calendar-clock"></i>
+                <span>Smart Scheduling</span>
+            </div>
             <div class="nav-item" data-target="clinic-settings-section" data-title="Clinic Settings">
                 <i data-lucide="settings"></i>
                 <span>Clinic Settings</span>
@@ -68,7 +73,7 @@
 
         <div class="sidebar-footer">
             <div class="nav-item" data-target="profile-section" data-title="Admin Profile">
-                <i data-lucide="user-settings"></i>
+                <i data-lucide="settings"></i>
                 <span>My Profile</span>
             </div>
             <div class="nav-item logout-item" id="logout-btn">
@@ -108,37 +113,37 @@
             <!-- OVERVIEW SECTION -->
             <section id="overview-section" class="content-section active">
                 <div class="metrics-grid">
-                    <div class="metric-card">
+                    <div class="metric-card" id="metric-patients-card">
                         <div class="metric-header">
                             <span class="metric-title">Total Patients</span>
-                            <div class="metric-icon"><i data-lucide="users"></i></div>
+                            <div class="metric-icon" id="icon-stat-patients"><i data-lucide="users"></i></div>
                         </div>
                         <div class="metric-value" id="stat-patients">0</div>
                         <div class="metric-trend text-success" id="trend-patients-container"><i data-lucide="trending-up"></i> <span
                                 id="trend-patients">+0%</span> vs last month</div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" id="metric-doctors-card">
                         <div class="metric-header">
                             <span class="metric-title">Total Doctors</span>
-                            <div class="metric-icon success"><i data-lucide="stethoscope"></i></div>
+                            <div class="metric-icon success" id="icon-stat-doctors"><i data-lucide="stethoscope"></i></div>
                         </div>
                         <div class="metric-value" id="stat-doctors">0</div>
                         <div class="metric-trend text-success" id="trend-doctors-container"><i data-lucide="trending-up"></i> <span
                                 id="trend-doctors">Active</span></div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" id="metric-appointments-card">
                         <div class="metric-header">
                             <span class="metric-title">Appointments (Month)</span>
-                            <div class="metric-icon warning"><i data-lucide="calendar-check"></i></div>
+                            <div class="metric-icon warning" id="icon-stat-appointments"><i data-lucide="calendar-check"></i></div>
                         </div>
                         <div class="metric-value" id="stat-appointments">0</div>
                         <div class="metric-trend text-success" id="trend-appts-container"><i data-lucide="trending-up"></i> <span
                                 id="trend-appts">+0%</span> vs last month</div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" id="metric-revenue-card">
                         <div class="metric-header">
                             <span class="metric-title">Simulated Revenue</span>
-                            <div class="metric-icon revenue"><i data-lucide="dollar-sign"></i></div>
+                            <div class="metric-icon revenue" id="icon-stat-revenue"><i data-lucide="dollar-sign"></i></div>
                         </div>
                         <div class="metric-value" id="stat-revenue">$0</div>
                         <div class="metric-trend text-success" id="trend-revenue-container"><i data-lucide="trending-up"></i> Steady</div>
@@ -150,7 +155,7 @@
                         <div class="chart-header">
                             <h3 class="chart-title">Patient Intake (6 Months)</h3>
                         </div>
-                        <div class="chart-body">
+                        <div class="chart-body" id="patient-intake-chart-container">
                             <canvas id="patientChart"></canvas>
                         </div>
                     </div>
@@ -158,7 +163,7 @@
                         <div class="chart-header">
                             <h3 class="chart-title">Appointment Status</h3>
                         </div>
-                        <div class="chart-body">
+                        <div class="chart-body" id="appt-status-chart-container">
                             <canvas id="appointmentChart"></canvas>
                         </div>
                     </div>
@@ -196,7 +201,7 @@
                             <h3 class="chart-title">Registered Doctors</h3>
                             <div class="search-box-wrapper">
                                 <i data-lucide="search"></i>
-                                <input type="text" id="doctor-search" class="search-input"
+                                <input type="text" id="doctor-search" class="table-search-input"
                                     placeholder="Search by name or email..." oninput="filterTable('doctors')">
                             </div>
                         </div>
@@ -249,7 +254,7 @@
                             <h3 class="chart-title">Registered Receptionists</h3>
                             <div class="search-box-wrapper">
                                 <i data-lucide="search"></i>
-                                <input type="text" id="receptionist-search" class="search-input"
+                                <input type="text" id="receptionist-search" class="table-search-input"
                                     placeholder="Search receptionists..." oninput="filterTable('receptionists')">
                             </div>
                         </div>
@@ -302,7 +307,7 @@
                             <h3 class="chart-title">Patient Records</h3>
                             <div class="search-box-wrapper">
                                 <i data-lucide="search"></i>
-                                <input type="text" id="patient-search" class="search-input"
+                                <input type="text" id="patient-search" class="table-search-input"
                                     placeholder="Search patients..." oninput="filterTable('patients')">
                             </div>
                         </div>
@@ -381,18 +386,26 @@
                 <div class="table-container">
                     <div class="table-header">
                         <div class="header-main">
-                            <h3 class="chart-title">Global Appointment Logs</h3>
-                            <p class="text-muted" style="font-size: 0.8rem;">Monitor all clinic consultations</p>
-                        </div>
-                        <div class="header-actions">
-                            <div class="search-box">
+                            <h3 class="chart-title">Appointment Registry</h3>
+                            
+                            <div class="search-box-wrapper appt-search-box">
                                 <i data-lucide="search"></i>
-                                <input type="text" id="appt-search" placeholder="Search appointments..." oninput="filterAppointments()">
+                                <input type="text" id="appt-search" class="table-search-input" placeholder="Search patient or doctor..." oninput="filterAppointments()">
+                            </div>
+
+                            <div class="search-box-wrapper appt-filter-box">
+                                <i data-lucide="filter" style="width: 14px; color: #64748B;"></i>
+                                <select id="appt-status-filter" class="table-search-input" onchange="filterAppointments()">
+                                    <option value="all">All Status</option>
+                                    <option value="scheduled">Scheduled</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
                             </div>
                         </div>
                     </div>
                     
-                    <div style="overflow-x: auto;">
+                    <div class="table-wrapper desktop-only">
                         <table class="data-table">
                             <thead>
                                 <tr>
@@ -408,10 +421,18 @@
                             </tbody>
                         </table>
                     </div>
+
+                    <!-- Mobile Card View -->
+                    <div id="all-appts-card-grid" class="staff-card-grid mobile-only">
+                        <!-- Cards will be injected by JS -->
+                    </div>
                     
                     <div id="all-appts-pagination" class="pagination-controls" style="display: none; justify-content: center; align-items: center; gap: 1rem; margin: 1.5rem 0; padding-bottom: 1rem;">
                     </div>
                 </div>
+
+                <!-- Hidden div for ID Card rendering -->
+                <div id="id-card-render-area" style="position: fixed; left: -9999px; top: -9999px;"></div>
             </section>
 
             <!-- CLINIC SETTINGS SECTION -->
@@ -432,20 +453,55 @@
                                     <option value="12">12 Hours (2 Shifts)</option>
                                 </select>
                             </div>
-                            <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 1rem;">
-                                <i data-lucide="save"></i> Save Settings
+                            <button type="submit" id="save-settings-btn" class="btn btn-primary btn-sm" style="margin-top: 1rem;">
+                                <span class="btn-text"><i data-lucide="save"></i> Save Settings</span>
+                                <span class="btn-loader"></span>
                             </button>
                         </form>
                     </div>
 
-                    <div class="metric-card" style="opacity: 0.6; cursor: not-allowed;">
+                    <div class="metric-card">
                         <div class="metric-header">
                             <span class="metric-title">Advanced Security</span>
                             <div class="metric-icon success"><i data-lucide="shield-check"></i></div>
                         </div>
-                        <p class="text-muted" style="font-size: 0.85rem;">Role Management coming soon.</p>
+                        <p class="text-muted" style="font-size: 0.85rem; margin-bottom: 1rem;">System-level access and security controls.</p>
+                        
+                        <div class="security-toggles" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.85rem; font-weight: 500;">Maintenance Mode</span>
+                                <label class="switch-v2">
+                                    <input type="checkbox" id="sec-maintenance">
+                                    <span class="slider-v2"></span>
+                                </label>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.85rem; font-weight: 500;">Two-Factor Auth</span>
+                                <label class="switch-v2">
+                                    <input type="checkbox" id="sec-2fa">
+                                    <span class="slider-v2"></span>
+                                </label>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.85rem; font-weight: 500;">Registration Guard</span>
+                                <label class="switch-v2">
+                                    <input type="checkbox" id="sec-reg-guard" checked>
+                                    <span class="slider-v2"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <button type="button" id="save-security-btn" class="btn btn-primary btn-sm" style="margin-top: 1.25rem; width: 100%;" onclick="saveSecuritySettings()">
+                            <span class="btn-text"><i data-lucide="lock"></i> Update Security</span>
+                            <span class="btn-loader"></span>
+                        </button>
                     </div>
                 </div>
+            </section>
+
+            <!-- SMART SCHEDULING SECTION -->
+            <section id="smart-scheduling-section" class="content-section">
+                <!-- Smart Scheduling content will be rendered by JavaScript -->
             </section>
 
             <!-- PROFILE SECTION -->
@@ -459,6 +515,10 @@
                                 </div>
                                 <button class="btn-edit-avatar" title="Update Profile" onclick="document.getElementById('photo-upload-input').click()">
                                     <i data-lucide="camera" style="width: 18px;"></i>
+                                </button>
+                                <button type="submit" id="save-profile-btn" class="btn btn-primary" style="margin-top: 1rem;">
+                                    <span class="btn-text"><i data-lucide="check"></i> Save Changes</span>
+                                    <span class="btn-loader"></span>
                                 </button>
                                 <input type="file" id="photo-upload-input" style="display: none;" accept="image/*" onchange="handlePhotoSelect(event)">
                             </div>
@@ -521,28 +581,84 @@
             <div class="modal-body">
                 <form id="add-staff-form">
                     <input type="hidden" id="staff-role-input">
-                    <div class="form-group">
-                        <label class="form-label"><i data-lucide="user" class="input-icon"></i> Full Name</label>
-                        <input type="text" id="staff-name" class="form-input" placeholder="Enter full name" required>
+                    
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label class="form-label"><i data-lucide="user" class="input-icon"></i> Full Name</label>
+                            <input type="text" id="staff-name" class="form-input" placeholder="Name" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label"><i data-lucide="mail" class="input-icon"></i> Email Address</label>
+                            <input type="email" id="staff-email" class="form-input" placeholder="Email" required>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label"><i data-lucide="mail" class="input-icon"></i> Email Address</label>
-                        <input type="email" id="staff-email" class="form-input" placeholder="name@clinic.com" required>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label class="form-label"><i data-lucide="key" class="input-icon"></i> Temp Password</label>
+                            <input type="password" id="staff-password" class="form-input" placeholder="8+ chars" minlength="8" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label"><i data-lucide="briefcase" class="input-icon"></i> Exp (Years)</label>
+                            <input type="number" id="staff-experience" class="form-input" placeholder="Exp" required min="0">
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label"><i data-lucide="key" class="input-icon"></i> Temporary
-                            Password</label>
-                        <input type="password" id="staff-password" class="form-input" placeholder="Min 8 characters"
-                            minlength="8" required>
-                        <p class="form-hint">User will sign in with this password initially.</p>
+
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label class="form-label"><i data-lucide="users" class="input-icon"></i> Gender</label>
+                            <select id="staff-gender" class="form-input" required>
+                                <option value="male">Male</option>
+                                <option value="female">Female</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label"><i data-lucide="calendar" class="input-icon"></i> Age</label>
+                            <input type="number" id="staff-age" class="form-input" placeholder="Age" required min="18" max="100">
+                        </div>
                     </div>
+
+                    <!-- Doctor Specific Fields -->
+                    <div id="doctor-fields" class="hidden">
+                        <div class="form-row-2">
+                            <div class="form-group">
+                                <label class="form-label"><i data-lucide="graduation-cap" class="input-icon"></i> Degree</label>
+                                <select id="staff-degree" class="form-input">
+                                    <option value="">Select...</option>
+                                    <option value="MBBS">MBBS</option>
+                                    <option value="BDS">BDS</option>
+                                    <option value="FCPS">FCPS</option>
+                                    <option value="MD">MD</option>
+                                    <option value="MS">MS</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label"><i data-lucide="stethoscope" class="input-icon"></i> Specialist</label>
+                                <select id="staff-specialization" class="form-input">
+                                    <option value="">Select...</option>
+                                    <option value="General Physician">General Physician</option>
+                                    <option value="Cardiologist">Cardiologist</option>
+                                    <option value="Dermatologist">Dermatologist</option>
+                                    <option value="Pediatrician">Pediatrician</option>
+                                    <option value="Neurologist">Neurologist</option>
+                                    <option value="Other">Other</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="form-hint">User will sign in with this password initially.</p>
                 </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('add-staff-modal')">Cancel</button>
-                <button class="btn btn-primary btn-sm" id="submit-staff-btn" onclick="submitAddStaff()">
-                    <span class="btn-text">Create Account</span>
-                    <div class="loader-spinner hidden" id="staff-loader"></div>
+                <button type="button" class="btn btn-secondary" onclick="closeModal('add-staff-modal')">
+                    <i data-lucide="x"></i> Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="submit-staff-btn" onclick="submitAddStaff()">
+                    <span class="btn-text"><i data-lucide="user-plus"></i> Create Account</span>
+                    <span class="btn-loader"></span>
                 </button>
             </div>
         </div>
@@ -600,6 +716,8 @@
     <div class="toast-container" id="toast-container"></div>
 
     <script type="module" src="./js/admin.js"></script>
+    <script type="module" src="./js/smart-scheduling.js"></script>
+    <script src="../js/visual-excellence.js"></script>
 </body>
 
 </html>

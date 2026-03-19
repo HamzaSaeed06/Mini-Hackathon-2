@@ -4,8 +4,7 @@ import {
     applyAvatarStyle, 
     getAvatarPalette,
     getAvatarConfig,
-    AVATAR_PALETTES,
-    SKELETON_DELAY
+    AVATAR_PALETTES
 } from '../../js/utils.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import {
@@ -45,7 +44,7 @@ onAuthStateChanged(auth, async (user) => {
         userAvatar.style.cssText = style;
     }
 
-    // Population Profile Section
+// Population Profile Section
     populateProfile(user.uid, userData, 'doctor');
 
     // Start listeners
@@ -62,6 +61,12 @@ onAuthStateChanged(auth, async (user) => {
         window.downloadIDCardDirectly(user.uid, 'Doctor');
     });
 });
+
+// Mirror Admin's Avatar System for 1:1 Parity
+const getAvatarHTML = (m) => {
+    const { html, style, classes } = getAvatarConfig(m);
+    return `<div class="user-avatar-sm ${classes}" style="display:inline-flex; align-items:center; justify-content:center; ${style}">${html}</div>`;
+};
 
 // ── Photo Upload UX ──────────────────────────────────────────
 let pendingPhotoFile = null;
@@ -217,59 +222,10 @@ const HIST_PER_PAGE = 6;
 const MODAL_HIST_PER_PAGE = 6;
 let currentModalPage = 1;
 let currentPatientHistory = [];
-let currentFilteredHistory = [];
 let currentPatientName = "";
+let activePatientName = ""; // To store the name for diagnosis/prescription
 
-// ── Skeleton Loaders ──────────────────────────────────────────
-function renderMetricSkeletons() {
-    const statsContainer = document.querySelector('.page-content');
-    if (!statsContainer) return;
-    
-    // Specifically target the stats boxes if they exist
-    const stats_boxes = [
-        document.getElementById('stats-today'),
-        document.getElementById('stats-monthly')
-    ];
 
-    stats_boxes.forEach(box => {
-        if (box) {
-            box.innerHTML = `<div class="skeleton-text skeleton" style="width:40px;height:32px;margin:0 auto;"></div>`;
-        }
-    });
-}
-
-function renderTableSkeletons(type) {
-    const tbody = document.getElementById(`${type}-table-body`);
-    const cardGrid = document.getElementById(`${type}-card-grid`);
-    
-    if (tbody) {
-        tbody.innerHTML = `
-            <tr class="skeleton-row">
-                <td><div class="user-info-cell"><div class="skeleton skeleton-avatar"></div><div class="skeleton-text skeleton" style="width:120px;"></div></div></td>
-                <td><div class="skeleton-text skeleton" style="width:150px;"></div></td>
-                <td><div class="skeleton-text skeleton" style="width:100px;"></div></td>
-                <td class="table-actions-cell"><div class="skeleton-btn skeleton"></div></td>
-            </tr>
-        `.repeat(4);
-    }
-    
-    if (cardGrid) {
-        cardGrid.innerHTML = `
-            <div class="compact-staff-card skeleton-card">
-                <div class="card-header-row" style="display:flex; gap:1rem; align-items:center; margin-bottom:1rem;">
-                    <div class="skeleton skeleton-avatar" style="width:52px;height:52px;"></div>
-                    <div style="flex:1;"><div class="skeleton-text skeleton" style="width:70%;"></div></div>
-                </div>
-                <div class="card-body-section" style="margin-bottom:1rem;">
-                    <div class="skeleton-text skeleton" style="width:90%;"></div>
-                </div>
-                <div class="card-actions-vertical">
-                    <div class="skeleton skeleton-btn" style="width:100%;height:38px;"></div>
-                </div>
-            </div>
-        `.repeat(3);
-    }
-}
 
 // ── Update Daily Capacity ──────────────────────────────────────
 window.updateDailyCapacity = async () => {
@@ -281,7 +237,6 @@ window.updateDailyCapacity = async () => {
         showToast("Please enter a valid capacity between 1 and 50.", 'warning');
         return;
     }
-
     try {
         const userRef = doc(db, 'users', auth.currentUser.uid);
         await updateDoc(userRef, { dailyCapacity: capacity });
@@ -308,33 +263,17 @@ navItems.forEach(item => {
                 
                 // Perception Delay on Click
                 if (targetId === 'appointments-section') {
-                    renderTableSkeletons('appointments');
-                    setTimeout(() => renderApptPage(), SKELETON_DELAY);
+                    renderApptPage();
                 } else if (targetId === 'patients-history-section') {
-                    renderTableSkeletons('history');
-                    setTimeout(() => renderHistoryTable(), SKELETON_DELAY);
-                } else {
-                    const contentArea = section.querySelector('.table-container') || section.querySelector('.profile-container') || section;
-                    if (!contentArea.dataset.loader) {
-                        contentArea.dataset.loader = 'true';
-                        
-                        const loader = document.createElement('div');
-                        loader.className = 'section-loader-overlay';
-                        loader.innerHTML = `
-                            <div class="loader-content">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-loader-2 spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>
-                            </div>
-                        `;
-                        contentArea.appendChild(loader);
-
-                        setTimeout(() => {
-                            loader.remove();
-                            delete contentArea.dataset.loader;
-                        }, SKELETON_DELAY);
-                    }
+                    renderHistoryTable();
                 }
             }
         });
+
+        // Ensure icons are created for the new section
+        if (window.lucide) {
+            setTimeout(() => lucide.createIcons(), 50);
+        }
 
         // Special handling for profile
         if (targetId === 'profile-section') {
@@ -359,43 +298,13 @@ if (logoutBtn) {
     });
 }
 
-// ── Load Appointments (Real-time & Paginated) ─────────────────
-
 function loadAppointments(doctorId) {
-    const tableBody = document.getElementById('appointments-table-body');
-    const cardGrid = document.getElementById('appointments-card-grid');
-    const paginationContainer = document.getElementById('appointments-pagination-container');
-
-    renderTableSkeletons('appointments');
-    renderMetricSkeletons();
-
     const q = query(collection(db, 'appointments'), where('doctorId', '==', doctorId));
 
     onSnapshot(q, (snap) => {
         allAppointments = [];
         snap.forEach(d => allAppointments.push({ id: d.id, ...d.data() }));
-
-        // Perception Delay
-        setTimeout(() => {
-            if (allAppointments.length === 0) {
-                if (tableBody) tableBody.innerHTML = `<tr><td colspan="4" class="empty-state">No appointments found.</td></tr>`;
-                if (cardGrid) cardGrid.innerHTML = '<p class="empty-state">No appointments found.</p>';
-                if (paginationContainer) paginationContainer.innerHTML = '';
-                return;
-            }
-
-            allAppointments.sort((a, b) => {
-                if (a.status === 'completed' && b.status !== 'completed') return 1;
-                if (a.status !== 'completed' && b.status === 'completed') return -1;
-                const da = a.date || '';
-                const db_ = b.date || '';
-                if (da !== db_) return da > db_ ? 1 : -1;
-                return (a.time || '') > (b.time || '') ? 1 : -1;
-            });
-
-            currentApptPage = 1;
-            renderApptPage();
-        }, SKELETON_DELAY);
+        renderApptPage();
     });
 }
 
@@ -403,10 +312,21 @@ function renderApptPage() {
     const tableBody = document.getElementById('appointments-table-body');
     const cardGrid = document.getElementById('appointments-card-grid');
     const paginationContainer = document.getElementById('appointments-pagination-container');
+    if (!tableBody || !cardGrid) return;
+
+    if (allAppointments.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="5" class="empty-state">No appointments found.</td></tr>';
+        cardGrid.innerHTML = `
+            <div class="empty-state-card v-excellence">
+                <i data-lucide="calendar-x" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
+                <p>No appointments scheduled for today.</p>
+            </div>
+        `;
+        if (paginationContainer) paginationContainer.innerHTML = '';
+        return;
+    }
 
     const totalPages = Math.ceil(allAppointments.length / APPT_PER_PAGE);
-    if (currentApptPage > totalPages && totalPages > 0) currentApptPage = totalPages;
-
     const startIndex = (currentApptPage - 1) * APPT_PER_PAGE;
     const paginatedItems = allAppointments.slice(startIndex, startIndex + APPT_PER_PAGE);
 
@@ -415,27 +335,34 @@ function renderApptPage() {
 
     paginatedItems.forEach(data => {
         const pName = data.patientName || 'Patient';
-        const { html: pAvatarContent, style: pAvatarStyle, classes: pAvatarClasses } = getAvatarConfig({
-            uid: data.patientId,
-            name: pName,
-            photoURL: data.patientPhotoURL
-        });
-
+        // Fallback: Fetch email from patient cache if missing
+        const pEmail = data.patientEmail || historyDataCache.find(pt => pt.id === data.patientId)?.email || '—';
+        
+        // Robust Date Parser
+        const displayDate = data.date?.toDate ? data.date.toDate().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : (data.date || 'No Date');
+        const displayTime = data.time || '—';
+        
         tableHtml += `
             <tr class="admin-table-row">
                 <td>
                     <div class="user-info-cell">
-                         <div class="user-avatar-sm ${pAvatarClasses}" style="${pAvatarStyle}">${pAvatarContent}</div>
-                         <div class="user-details">
+                        ${getAvatarHTML({ name: pName, uid: data.patientId, photoURL: data.patientPhotoURL })}
+                        <div class="user-details">
                             <span class="user-name-text">${pName}</span>
-                            <span class="table-cell-muted">${data.patientGender}, ${data.patientAge}y</span>
-                         </div>
+                            <span class="user-email-subtext">${data.patientId ? `ID: ${data.patientId.substring(0, 8)}...` : '—'}</span>
+                        </div>
                     </div>
                 </td>
-                <td class="table-cell-muted">${data.date ? new Date(data.date+'T00:00:00').toLocaleDateString('en-PK',{day:'2-digit',month:'short'}) : '—'} · ${data.time || '—'}</td>
-                <td><span class="status-indicator-pill ${data.status}">${data.status}</span></td>
+                <td class="table-cell-muted">${pEmail}</td>
+                <td class="table-cell-muted">${displayDate} · ${displayTime}</td>
+                <td>
+                    <span class="status-indicator-pill ${data.status || 'pending'}">
+                        <span class="status-dot-indicator"></span>
+                        <span class="status-text-compact">${(data.status || 'pending').toUpperCase()}</span>
+                    </span>
+                </td>
                 <td class="table-actions-cell">
-                    <button class="btn-action-sm btn-attend" onclick="openDiagnosis('${data.id}', '${pName}')" title="Attend Patient">
+                    <button class="btn-doctor-action" onclick="openDiagnosis('${data.id}', '${pName}')" title="Attend Patient">
                         <i data-lucide="stethoscope"></i>
                         <span>Attend</span>
                     </button>
@@ -444,27 +371,29 @@ function renderApptPage() {
         `;
 
         cardHtml += `
-            <div class="compact-staff-card">
-                <div class="card-header-row" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
-                    <div style="display:flex; gap:12px; align-items:center;">
-                        <div class="user-avatar-sm ${pAvatarClasses}" style="${pAvatarStyle}">${pAvatarContent}</div>
-                        <div>
-                            <h4 class="card-user-name">${pName}</h4>
-                            <p class="card-user-email">${data.patientGender}, ${data.patientAge}y</p>
+            <div class="staff-card v-excellence">
+                <div class="staff-card-header">
+                    <div class="staff-header-info">
+                        ${getAvatarHTML({ name: pName, uid: data.patientId, photoURL: data.patientPhotoURL })}
+                        <div class="staff-title-box">
+                            <span class="staff-name">${pName}</span>
+                            <span class="staff-role-tag">Appointment</span>
                         </div>
                     </div>
+                    <span class="status-indicator-pill ${data.status || 'pending'}"><span class="status-dot-indicator"></span>${(data.status || 'pending').toUpperCase()}</span>
                 </div>
-                <div class="card-body-section" style="margin-bottom:0.75rem; padding: 0.5rem 0; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9;">
-                    <p class="table-cell-muted" style="font-size:0.85rem; display:flex; align-items:center; gap:6px;">
-                        <i data-lucide="calendar" style="width:14px;height:14px; color: var(--primary);"></i>
-                        ${data.date ? new Date(data.date+'T00:00:00').toLocaleDateString('en-PK',{day:'2-digit',month:'short'}) : '—'} · ${data.time || '—'}
-                    </p>
-                    <div style="margin-top:0.5rem;">
-                        <span class="status-indicator-pill ${data.status}" style="font-size:0.7rem; padding:2px 8px;">${data.status}</span>
+                <div class="staff-card-body">
+                    <div class="staff-detail-row">
+                        <i data-lucide="mail"></i>
+                        <span>${pEmail}</span>
+                    </div>
+                    <div class="staff-detail-row">
+                        <i data-lucide="calendar"></i>
+                        <span>${displayDate} · ${displayTime}</span>
                     </div>
                 </div>
-                <div class="card-actions-vertical">
-                    <button class="spc-btn primary" onclick="openDiagnosis('${data.id}', '${pName}')">
+                <div class="staff-card-footer">
+                    <button class="btn btn-primary btn-full" onclick="openDiagnosis('${data.id}', '${pName}')">
                         <i data-lucide="stethoscope"></i> Attend Patient
                     </button>
                 </div>
@@ -472,8 +401,8 @@ function renderApptPage() {
         `;
     });
 
-    if (tableBody) tableBody.innerHTML = tableHtml;
-    if (cardGrid) cardGrid.innerHTML = cardHtml;
+    tableBody.innerHTML = tableHtml;
+    cardGrid.innerHTML = cardHtml;
     
     if (paginationContainer) {
         if (totalPages > 1) {
@@ -496,24 +425,23 @@ window.rapidAiAssist = async () => {
     
     showToast('AI is analyzing symptoms...', 'info');
     
-    setTimeout(() => {
-        const diagnostics = [
-            { d: "Common Flu", m: "Panadol, Arinac, Vita-C" },
-            { d: "Bacterial Infection", m: "Amoxicillin, Panadol" },
-            { d: "Allergic Rhinitis", m: "Softin, Nasal Spray" },
-            { d: "Viral Fever", m: "Paracetamol, Hydration" }
-        ];
-        const pick = diagnostics[Math.floor(Math.random() * diagnostics.length)];
-        
-        document.getElementById('diagnosis-input').value = pick.d;
-        document.getElementById('medicines-input').value = pick.m;
-        
-        showToast('AI Suggestion applied!', 'success');
-    }, 1500);
+    const diagnostics = [
+        { d: "Common Flu", m: "Panadol, Arinac, Vita-C" },
+        { d: "Bacterial Infection", m: "Amoxicillin, Panadol" },
+        { d: "Allergic Rhinitis", m: "Softin, Nasal Spray" },
+        { d: "Viral Fever", m: "Paracetamol, Hydration" }
+    ];
+    const pick = diagnostics[Math.floor(Math.random() * diagnostics.length)];
+    
+    document.getElementById('diagnosis-input').value = pick.d;
+    document.getElementById('medicines-input').value = pick.m;
+    
+    showToast('AI Suggestion applied!', 'success');
 };
 
 window.openDiagnosis = (apptId, patientName) => {
     document.getElementById('active-appt-id').value = apptId;
+    activePatientName = patientName; // Store name for prescription
     document.getElementById('diagnosis-modal').classList.add('active');
     // Clear previous
     document.getElementById('diagnosis-form').reset();
@@ -523,27 +451,71 @@ window.closeModal = (id) => {
     document.getElementById(id).classList.remove('active');
 };
 
+// Close modal when clicking outside
+document.addEventListener('click', (e) => {
+    if (e.target.classList.contains('modal-overlay')) {
+        e.target.classList.remove('active');
+    }
+});
+
 // ── Stats Logic ───────────────────────────────────────────────
-function loadPersonalStats(doctorId) {
-    const todayCount = document.getElementById('stats-today');
-    const monthlyCount = document.getElementById('stats-monthly');
+async function loadPersonalStats(doctorId) {
+    const container = document.getElementById('stats-grid');
+    if (!container) return;
 
     const q = query(collection(db, 'appointments'), where('doctorId', '==', doctorId));
     onSnapshot(q, (snap) => {
-        setTimeout(() => {
-            const today = new Date().toISOString().split('T')[0];
-            let todayCountVal = 0;
-            let completed = 0;
+        let total = 0;
+        let completed = 0;
+        const today = new Date().toISOString().split('T')[0];
+        let todayCountVal = 0;
 
-            snap.forEach(d => {
-                const data = d.data();
-                if (data.status === 'completed') completed++;
-                if (data.date === today && data.status === 'pending') todayCountVal++;
-            });
+        snap.forEach(d => {
+            total++;
+            const data = d.data();
+            if (data.status === 'completed') completed++;
+            if (data.date === today) todayCountVal++;
+        });
 
-            if (todayCount) todayCount.textContent = todayCountVal;
-            if (monthlyCount) monthlyCount.textContent = completed;
-        }, SKELETON_DELAY);
+        const completionRate = total > 0 ? Math.round((completed / total) * 100) : 0;
+
+        // Update the Stats Section UI (Admin Style metric-card)
+        container.innerHTML = `
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">Total Patients</span>
+                    <div class="metric-icon"><i data-lucide="users"></i></div>
+                </div>
+                <div class="metric-value">${total}</div>
+                <div class="metric-trend text-success"><i data-lucide="trending-up"></i> <span>+5%</span> vs last month</div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">Today's Appointments</span>
+                    <div class="metric-icon success"><i data-lucide="calendar"></i></div>
+                </div>
+                <div class="metric-value">${todayCountVal}</div>
+                <div class="metric-trend text-success"><i data-lucide="clock"></i> <span>Active</span></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">Completed Visits</span>
+                    <div class="metric-icon warning"><i data-lucide="check-circle"></i></div>
+                </div>
+                <div class="metric-value">${completed}</div>
+                <div class="metric-trend text-success"><i data-lucide="activity"></i> <span>Pulse</span></div>
+            </div>
+            <div class="metric-card">
+                <div class="metric-header">
+                    <span class="metric-title">Completion Rate</span>
+                    <div class="metric-icon revenue"><i data-lucide="percent"></i></div>
+                </div>
+                <div class="metric-value">${completionRate}%</div>
+                <div class="metric-trend text-success"><i data-lucide="award"></i> <span>Top Tier</span></div>
+            </div>
+        `;
+
+        if (window.lucide) lucide.createIcons();
     });
 }
 
@@ -576,7 +548,7 @@ window.saveDiagnosis = async () => {
 
         showToast('Appointment completed and prescription saved!', 'success');
         generatePrescriptionPDF({
-            patientName: document.querySelector('#appointments-table-body .user-name-text')?.textContent || 'Patient',
+            patientName: activePatientName || 'Patient',
             diagnosis,
             medicines,
             findings
@@ -588,55 +560,168 @@ window.saveDiagnosis = async () => {
     }
 };
 
-// ── AI Consultant (Gemini Chat Effect) ──────────────────────
+// ── AI Consultant (Patient-Aware Smart Diagnosis) ────────────
 window.analyzeSymptoms = async () => {
     const inputField = document.getElementById('symptoms-input');
     const input = inputField.value.trim();
-    if (!input) return showToast('Please enter symptoms first.', 'warning');
+    if (!input) return showToast('Please enter patient info & symptoms.', 'warning');
 
     const chatMessages = document.getElementById('ai-chat-messages');
 
-    // 1. Add User Bubble
-    const userBubble = document.createElement('div');
-    userBubble.className = 'chat-bubble bubble-user';
-    userBubble.textContent = input;
-    chatMessages.appendChild(userBubble);
-    inputField.value = '';
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+    // Helper: add a message row with avatar
+    function addRow(side, html) {
+        const row = document.createElement('div');
+        row.className = `ai-msg-row ai-msg-row--${side}`;
 
-    // 2. Add Typing Indicator
-    const typingIndicator = document.createElement('div');
-    typingIndicator.className = 'ai-typing-indicator';
-    typingIndicator.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
-    chatMessages.appendChild(typingIndicator);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+        const avatarEl = document.createElement('div');
+        avatarEl.className = side === 'ai' ? 'ai-avatar' : 'user-avatar';
+        avatarEl.innerHTML = side === 'ai'
+            ? '<i data-lucide="brain-circuit"></i>'
+            : '<i data-lucide="user-round"></i>';
 
-    try {
-        // Simulated AI Logic with Typing Effect
-        setTimeout(() => {
-            if (typingIndicator.parentNode) chatMessages.removeChild(typingIndicator);
+        const bubble = document.createElement('div');
+        bubble.className = `chat-bubble bubble-${side}`;
+        bubble.innerHTML = html;
 
-            const aiBubble = document.createElement('div');
-            aiBubble.className = 'chat-bubble bubble-ai';
-            chatMessages.appendChild(aiBubble);
-
-            const responses = [
-                `Based on your input of '${input}', I suspect a possible Viral Respiratory Infection. Recommendation: Monitor SPO2, rest, and symptomatic treatment.`,
-                `Symptoms of '${input}' align with Seasonal Allergies. Advise antihistamines and monitoring for 48 hours.`,
-                `The report '${input}' indicates localized inflammation. Clinical correlation recommended along with standard analgesic protocols.`
-            ];
-            const response = responses[Math.floor(Math.random() * responses.length)];
-
-            typeText(aiBubble, response, () => {
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-                if (window.lucide) lucide.createIcons();
-            });
-        }, 1200);
-    } catch (e) {
-        if (typingIndicator.parentNode) typingIndicator.remove();
-        showToast('AI Service offline.', 'error');
+        if (side === 'ai') {
+            row.appendChild(avatarEl);
+            row.appendChild(bubble);
+        } else {
+            row.appendChild(bubble);
+            row.appendChild(avatarEl);
+        }
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        if (window.lucide) lucide.createIcons();
     }
+
+    // Show user message
+    addRow('user', input);
+    inputField.value = '';
+
+    // Show typing indicator
+    const typingRow = document.createElement('div');
+    typingRow.className = 'ai-msg-row ai-msg-row--ai';
+    typingRow.innerHTML = `
+        <div class="ai-avatar"><i data-lucide="brain-circuit"></i></div>
+        <div class="ai-typing-indicator">
+            <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+        </div>`;
+    chatMessages.appendChild(typingRow);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+    if (window.lucide) lucide.createIcons();
+
+    setTimeout(() => {
+        if (typingRow.parentNode) typingRow.remove();
+
+        const text = input.toLowerCase();
+
+        // ── Parse Age ────────────────────────────────────────────
+        let age = null;
+        const ageMatch = text.match(/(\d+)\s*(years?|yrs?|سال|year old|yr old)/i)
+            || text.match(/age[:\s]+(\d+)/i)
+            || text.match(/(\d+)\s*y\/o/i);
+        if (ageMatch) age = parseInt(ageMatch[1]);
+
+        // If no age info provided, ask for it
+        if (age === null) {
+            addRow('ai', `⚠️ To prescribe the correct medicine, I need the patient's <strong>age</strong> and any <strong>allergies</strong>.<br><br>Please re-enter in this format:<br><em>"Age: 7, Symptoms: fever, cough, sore throat"</em>`);
+            return;
+        }
+
+        const isChild   = age < 12;
+        const isTeen    = age >= 12 && age < 18;
+        const isElderly = age >= 60;
+
+        // ── Symptom Detection ─────────────────────────────────────
+        const has = (keywords) => keywords.some(k => text.includes(k));
+
+        let diagnosis = '';
+        let medicines = '';
+        let note = '';
+
+        if (has(['fever', 'flu', 'cold', 'runny nose', 'nasal', 'sneezing', 'بخار', 'نزلہ', 'زکام'])) {
+            diagnosis = 'Viral Upper Respiratory Infection (Flu/Cold)';
+            if (isChild) {
+                medicines = 'Paracetamol Syrup (120mg/5ml) — 5–10ml every 6 hrs<br>Saline nasal drops as needed<br>Triaminic Cold Syrup — per weight';
+                note = '⚠️ Avoid Aspirin in children. Keep hydrated.';
+            } else if (isElderly) {
+                medicines = 'Paracetamol 500mg every 6 hrs (avoid NSAIDs)<br>Vitamin C 500mg daily<br>Arinac Forte — 1 tab twice daily';
+                note = '⚠️ Avoid Ibuprofen in elderly with renal issues.';
+            } else {
+                medicines = 'Paracetamol 500mg every 6 hrs<br>Arinac Forte — 1 tab twice daily<br>Vitamin C 1000mg once daily';
+            }
+        } else if (has(['sore throat', 'tonsil', 'throat', 'گلا', 'گلے میں درد'])) {
+            diagnosis = 'Bacterial Pharyngitis / Tonsillitis';
+            if (isChild) {
+                medicines = 'Amoxicillin Syrup (125mg/5ml) — 10ml every 8 hrs for 5 days<br>Paracetamol Syrup for fever<br>Diflucan gargle';
+            } else {
+                medicines = 'Amoxicillin 500mg — 1 cap every 8 hrs for 5 days<br>Paracetamol 500mg PRN<br>Strepsils lozenges as needed';
+            }
+        } else if (has(['cough', 'chest', 'phlegm', 'mucus', 'bronchitis', 'کھانسی'])) {
+            diagnosis = 'Acute Bronchitis / Productive Cough';
+            if (isChild) {
+                medicines = 'Ambroxol Syrup (15mg/5ml) — 5ml twice daily<br>Salbutamol Syrup if wheeze present<br>Steam inhalation';
+            } else {
+                medicines = 'Ambroxol 30mg — 1 tab twice daily<br>Salbutamol inhaler if wheeze<br>Honey + ginger warm drink advised';
+            }
+        } else if (has(['stomach', 'vomit', 'diarrhea', 'loose motion', 'nausea', 'پیٹ', 'اسہال', 'قے'])) {
+            diagnosis = 'Acute Gastroenteritis';
+            if (isChild) {
+                medicines = 'ORS sachets (Pedialyte) — after every loose stool<br>Zinc Sulfate Syrup — 10ml once daily for 10 days<br>Probiotics (Lactobacillus syrup)';
+                note = '⚠️ Do NOT give Metronidazole to children under 3 years without stool culture.';
+            } else {
+                medicines = 'ORS sachets every 4 hrs<br>Metronidazole 400mg — 3x daily for 5 days<br>Domperidone 10mg — 30 min before meals';
+            }
+        } else if (has(['headache', 'migraine', 'سر درد', 'head pain'])) {
+            diagnosis = 'Tension Headache / Migraine';
+            if (isChild) {
+                medicines = 'Paracetamol Syrup — as per weight<br>Rest in dark quiet room<br>Cool compress on forehead';
+            } else if (isElderly) {
+                medicines = 'Paracetamol 500mg (avoid NSAIDs)<br>Rest advised<br>Check BP before prescribing';
+                note = '⚠️ Rule out hypertension as cause.';
+            } else {
+                medicines = 'Ibuprofen 400mg — with food<br>Paracetamol 500mg alternating if needed<br>Caffeine tablet (Cafergot) for migraine';
+            }
+        } else if (has(['allergy', 'rash', 'itch', 'hives', 'urticaria', 'الرجی', 'خارش'])) {
+            diagnosis = 'Allergic Reaction / Urticaria';
+            if (isChild) {
+                medicines = 'Cetirizine Syrup (5mg/5ml) — 5ml once daily<br>Hydrocortisone Cream 1% (topical)<br>Cool bath for itching';
+            } else {
+                medicines = 'Cetirizine 10mg — once daily at night<br>Loratadine 10mg alternative<br>Hydrocortisone cream for local rash';
+                if (isElderly) note = '⚠️ Avoid sedating antihistamines in elderly (fall risk).';
+            }
+        } else if (has(['diabetes', 'sugar', 'blood sugar', 'شوگر', 'ذیابیطس'])) {
+            diagnosis = 'Type 2 Diabetes Management Review';
+            medicines = 'Metformin 500mg — twice daily with meals<br>Monitor fasting glucose daily<br>HbA1c test every 3 months';
+            note = '⚠️ Adjust dose based on kidney function. Avoid fasting without monitoring.';
+        } else if (has(['bp', 'blood pressure', 'hypertension', 'بلڈ پریشر', 'ہائپر ٹینشن'])) {
+            diagnosis = 'Hypertension';
+            medicines = 'Amlodipine 5mg — once daily morning<br>Losartan 50mg — once daily<br>Low-sodium diet, reduce caffeine';
+            note = '⚠️ Check renal function before ACE inhibitors in elderly.';
+        } else {
+            // Generic fallback
+            diagnosis = 'General Medical Assessment Needed';
+            medicines = isChild
+                ? 'Paracetamol Syrup (per weight) for symptom relief<br>Consult further for specific treatment'
+                : 'Paracetamol 500mg PRN<br>Further examination recommended for specific diagnosis';
+        }
+
+        // ── Build response ────────────────────────────────────────
+        const ageLabel = isChild ? `Child (${age} yrs)` : isElderly ? `Elderly (${age} yrs)` : `Adult (${age} yrs)`;
+        let html = `
+            <div style="font-size:0.78rem;color:var(--primary);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.04em;">
+                Patient: ${ageLabel}
+            </div>
+            <strong>Diagnosis:</strong> ${diagnosis}<br>
+            <strong>Medicines:</strong><br>${medicines}`;
+        if (note) html += `<br><br><span style="color:#b45309;font-size:0.82rem;">${note}</span>`;
+
+        addRow('ai', html);
+    }, 1200);
 };
+
+
 
 function typeText(element, text, callback) {
     let i = 0;
@@ -658,7 +743,7 @@ function typeText(element, text, callback) {
 window.filterAppointments = () => {
     const query = document.getElementById('appointment-search').value.toLowerCase();
     const rows = document.querySelectorAll('#appointments-table-body tr');
-    const cards = document.querySelectorAll('#appointments-card-grid .compact-staff-card');
+    const cards = document.querySelectorAll('#appointments-card-grid .staff-card');
 
     rows.forEach(row => {
         const text = row.querySelector('.user-name-text')?.textContent.toLowerCase() || '';
@@ -666,7 +751,23 @@ window.filterAppointments = () => {
     });
 
     cards.forEach(card => {
-        const text = card.querySelector('.card-user-name')?.textContent.toLowerCase() || '';
+        const text = card.querySelector('.staff-name')?.textContent.toLowerCase() || '';
+        card.style.display = text.includes(query) ? '' : 'none';
+    });
+};
+
+window.filterHistory = () => {
+    const query = document.getElementById('history-search').value.toLowerCase();
+    const rows = document.querySelectorAll('#history-table-body tr');
+    const cards = document.querySelectorAll('#history-card-grid .staff-card');
+
+    rows.forEach(row => {
+        const text = row.querySelector('.user-name-text')?.textContent.toLowerCase() || '';
+        row.style.display = text.includes(query) ? '' : 'none';
+    });
+
+    cards.forEach(card => {
+        const text = card.querySelector('.staff-name')?.textContent.toLowerCase() || '';
         card.style.display = text.includes(query) ? '' : 'none';
     });
 };
@@ -686,110 +787,112 @@ async function loadMedicalHistory() {
     const paginationContainer = document.getElementById('history-pagination-container');
     if (!historyBody) return;
 
-    renderTableSkeletons('history');
-
     const q = query(collection(db, 'users'), where('role', '==', 'patient'));
     onSnapshot(q, (snap) => {
         historyDataCache.length = 0;
         snap.forEach(d => historyDataCache.push({ id: d.id, ...d.data() }));
         
-        setTimeout(() => {
-            if (historyDataCache.length === 0) {
-                historyBody.innerHTML = '<tr><td colspan="4" class="empty-state">No patients found.</td></tr>';
-                if (paginationContainer) paginationContainer.innerHTML = '';
-                return;
-            }
-            currentHistPage = 1;
-            renderHistoryTable();
-        }, SKELETON_DELAY);
+        if (historyDataCache.length === 0) {
+            historyBody.innerHTML = '<tr><td colspan="5" class="empty-state">No patients found.</td></tr>';
+            if (paginationContainer)    paginationContainer.innerHTML = generatePaginationHTML(historyDataCache.length, HIST_PER_PAGE, currentHistPage, 'Hist');
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+        currentHistPage = 1;
+        renderHistoryTable();
     });
 }
 
 function renderHistoryTable(filteredPatients = null) {
-    const historyBody = document.getElementById('history-table-body');
+    const tableBody = document.getElementById('history-table-body');
     const cardGrid = document.getElementById('history-card-grid');
     const paginationContainer = document.getElementById('history-pagination-container');
 
-    const dataToRender = filteredPatients || historyDataCache;
-    const totalPages = Math.ceil(dataToRender.length / HIST_PER_PAGE);
-    
-    if (currentHistPage > totalPages && totalPages > 0) currentHistPage = totalPages;
+    if (!tableBody || !cardGrid) return;
 
+    const dataToRender = filteredPatients || historyDataCache;
+    
+    if (dataToRender.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" class="empty-state">No patient records found.</td></tr>`;
+        cardGrid.innerHTML = `<p class="empty-state" style="padding:2rem; text-align:center;">No patients found.</p>`;
+        return;
+    }
+
+    const totalPages = Math.ceil(dataToRender.length / HIST_PER_PAGE);
     const startIndex = (currentHistPage - 1) * HIST_PER_PAGE;
     const paginatedItems = dataToRender.slice(startIndex, startIndex + HIST_PER_PAGE);
 
     let tableHtml = '';
     let cardHtml = '';
-    
+
     paginatedItems.forEach(p => {
-        const joined = p.createdAt?.toDate ? p.createdAt.toDate().toLocaleDateString('en-PK', {day:'2-digit', month:'short', year:'numeric'}) : '—';
-        const { html: pAvatarContent, style: pAvatarStyle, classes: pAvatarClasses } = getAvatarConfig(p);
-        const pGender = p.gender || '—';
-        const pAge = p.age || '—';
+        const joinedDate = p.createdAt?.toDate ? p.createdAt.toDate().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+        const { html: avatarHTML, style: avatarStyle, classes: avatarClasses } = getAvatarConfig(p);
+        const patientStatus = p.status || 'active';
+        const statusLabel = patientStatus.charAt(0).toUpperCase() + patientStatus.slice(1);
 
         tableHtml += `
             <tr class="admin-table-row">
                 <td>
                     <div class="user-info-cell">
-                         <div class="user-avatar-sm ${pAvatarClasses}" style="${pAvatarStyle}">${pAvatarContent}</div>
-                         <div class="user-details">
-                            <span class="user-name-text">${p.name}</span>
-                            <span class="table-cell-muted">${pGender}, ${pAge}y</span>
+                        ${getAvatarHTML(p)}
+                        <div class="user-details">
+                            <span class="user-name-text">${p.name || '—'}</span>
+                            <span class="user-email-subtext">${p.id ? `ID: ${p.id.substring(0, 8)}...` : '—'}</span>
                         </div>
                     </div>
                 </td>
-                <td class="table-cell-muted">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <i data-lucide="clock" style="width:14px; color: var(--text-muted);"></i>
-                        ${joined}
-                    </div>
-                </td>
+                <td class="table-cell-muted">${p.email || '—'}</td>
+                <td class="table-cell-muted">${joinedDate}</td>
                 <td>
-                    <span class="status-indicator-pill active">Verified</span>
+                    <span class="status-indicator-pill ${patientStatus}">
+                        <span class="status-dot-indicator"></span>
+                        <span class="status-text-compact">${statusLabel}</span>
+                    </span>
                 </td>
                 <td class="table-actions-cell">
-                    <button class="btn-action-sm btn-view" onclick="viewTimeline('${p.id}', '${p.name}')" title="View Records">
+                    <button class="btn-doctor-action" onclick="viewTimeline('${p.id}', '${p.name}')" title="View Records">
                         <i data-lucide="eye"></i>
-                        <span>View</span>
+                        <span>View Records</span>
                     </button>
                 </td>
             </tr>
         `;
 
         cardHtml += `
-            <div class="compact-staff-card">
-                <div class="card-header-row" style="display:flex; justify-content:space-between; align-items:start; margin-bottom:1rem;">
-                    <div style="display:flex; gap:12px; align-items:center;">
-                        <div class="user-avatar-sm ${pAvatarClasses}" style="${pAvatarStyle}">${pAvatarContent}</div>
-                        <div>
-                            <h4 class="card-user-name" style="margin:0;">${p.name}</h4>
-                            <p class="card-user-email" style="margin:0;">Patient ID: #${p.id.slice(0,6)}</p>
+            <div class="staff-card v-excellence">
+                <div class="staff-card-header">
+                    <div class="staff-header-info">
+                        <div class="avatar-circle ${avatarClasses}" style="${avatarStyle}">${avatarHTML}</div>
+                        <div class="staff-title-box">
+                            <span class="staff-name">${p.name || '—'}</span>
+                            <span class="staff-role-tag">Patient</span>
                         </div>
                     </div>
-                    <span class="status-indicator-pill active" style="font-size:0.65rem;">Verified</span>
+                    <span class="status-indicator-pill ${patientStatus}"><span class="status-dot-indicator"></span>${statusLabel}</span>
                 </div>
-                <div class="card-body-section" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:1.25rem; padding: 1rem 0; border-top: 1px dashed var(--border); border-bottom: 1px dashed var(--border);">
-                    <div class="info-item">
-                        <span style="display:block; font-size:0.7rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:4px;">Joined</span>
-                        <span style="font-size:0.85rem; font-weight:600; color:#1e293b;">${joined}</span>
+                <div class="staff-card-body">
+                    <div class="staff-detail-row">
+                        <i data-lucide="mail"></i>
+                        <span>${p.email || '—'}</span>
                     </div>
-                    <div class="info-item">
-                        <span style="display:block; font-size:0.7rem; color:var(--text-muted); font-weight:600; text-transform:uppercase; margin-bottom:4px;">Details</span>
-                        <span style="font-size:0.85rem; font-weight:600; color:#1e293b;">${pGender}, ${pAge}y</span>
+                    <div class="staff-detail-row">
+                        <i data-lucide="calendar"></i>
+                        <span>Since: ${joinedDate}</span>
                     </div>
                 </div>
-                <div class="card-actions-vertical">
-                    <button class="spc-btn primary" onclick="viewTimeline('${p.id}', '${p.name}')" style="height:44px;">
-                        <i data-lucide="eye" style="width:16px;"></i> View Records
+                <div class="staff-card-footer">
+                    <button class="btn btn-primary btn-full" onclick="viewTimeline('${p.id}', '${p.name}')">
+                        <i data-lucide="eye"></i> Full Records
                     </button>
                 </div>
             </div>
         `;
     });
-    
-    if (historyBody) historyBody.innerHTML = tableHtml || '<tr><td colspan="4" class="empty-state">No patients found.</td></tr>';
-    if (cardGrid) cardGrid.innerHTML = cardHtml || '<p class="empty-state">No patients found.</p>';
-    
+
+    tableBody.innerHTML = tableHtml;
+    cardGrid.innerHTML = cardHtml;
+
     if (paginationContainer) {
         if (totalPages > 1) {
             renderPagination(paginationContainer, currentHistPage, totalPages, (newPage) => {
@@ -1038,12 +1141,7 @@ window.clearDiagnosisForm = () => {
 // Start history listener
 loadMedicalHistory();
 
-window.rapidAiAssist = () => {
-    const findings = document.getElementById('finding-text').value;
-    if (!findings) return showToast('Please enter physical findings first.', 'warning');
-
-    document.getElementById('diagnosis-input').value = "AI Suggestion: Viral Fever"; // Simulated rapid assist
-};
+// rapidAiAssist moved above to line 416
 
 // ── Digital ID logic ──────────────────────────────────────────
 // getAvatar removed in favor of getAvatarConfig
@@ -1143,22 +1241,20 @@ window.showIDCard = async (uid, roleType) => {
         if (window.lucide) lucide.createIcons();
         window.openModal('id-card-modal');
 
-        setTimeout(() => {
-            const qrContainer = document.getElementById('id-qrcode-canvas');
-            if (qrContainer && window.QRCode) {
-                qrContainer.innerHTML = '';
-                const verifyUrl = `${window.location.origin}/verify.html?id=${uid}`;
-                new QRCode(qrContainer, {
-                    text: verifyUrl,
-                    width: 80,
-                    height: 80,
-                    colorDark: "#0c4a6e",
-                    colorLight: "#ffffff",
-                    useSVG: true,
-                    correctLevel: QRCode.CorrectLevel.L
-                });
-            }
-        }, 100);
+        const qrContainer = document.getElementById('id-qrcode-canvas');
+        if (qrContainer && window.QRCode) {
+            qrContainer.innerHTML = '';
+            const verifyUrl = `${window.location.origin}/verify.html?id=${uid}`;
+            new QRCode(qrContainer, {
+                text: verifyUrl,
+                width: 80,
+                height: 80,
+                colorDark: "#0c4a6e",
+                colorLight: "#ffffff",
+                useSVG: true,
+                correctLevel: QRCode.CorrectLevel.L
+            });
+        }
     } catch (err) {
         console.error(err);
     }

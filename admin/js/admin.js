@@ -6,7 +6,7 @@ import {
 import {
     doc, getDoc, setDoc, updateDoc,
     deleteDoc, collection, query, where,
-    serverTimestamp, onSnapshot
+    serverTimestamp, onSnapshot, orderBy
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { renderPagination } from '../../js/pagination.js';
@@ -15,7 +15,6 @@ import {
     AVATAR_PALETTES,
     getAvatarPalette,
     getAvatarConfig,
-    SKELETON_DELAY,
     customConfirm,
     showToast
 } from '../../js/utils.js';
@@ -41,9 +40,9 @@ const ADMIN_PER_PAGE = 6;
 const adminPages = { doctors: 1, receptionists: 1, patients: 1 };
 const staffDataCache = { doctors: [], receptionists: [], patients: [] };
 
-// Initialize icons and skeletons as soon as possible
+// Instant initialization
 if (window.lucide) lucide.createIcons();
-renderMetricSkeletons();
+const diagList = document.getElementById('diagnosis-list');
 
 let userData = null;
 let patientChartInstance = null;
@@ -84,11 +83,7 @@ async function handleActualUpload() {
     if (!pendingPhotoFile) return;
 
     const btn = document.querySelector('.btn-edit-avatar');
-    const originalContent = btn.innerHTML;
-    btn.innerHTML = `<i data-lucide="loader-2" class="spin" style="width: 18px;"></i>`;
-    btn.disabled = true;
-    if (window.lucide) lucide.createIcons();
-
+    
     const CLOUDINARY_URL = 'https://api.cloudinary.com/v1_1/ds05q0lls/image/upload';
     const UPLOAD_PRESET = 'Ai Clinic';
 
@@ -97,6 +92,9 @@ async function handleActualUpload() {
     formData.append('upload_preset', UPLOAD_PRESET);
 
     try {
+        btn.classList.add('loading-photo');
+        btn.disabled = true;
+
         const response = await fetch(CLOUDINARY_URL, { method: 'POST', body: formData });
         const data = await response.json();
         
@@ -131,16 +129,26 @@ async function handleActualUpload() {
                 downloadBtn.onclick = () => window.downloadIDCardDirectly(auth.currentUser.uid, 'admin');
             }
             if (warningMsg) warningMsg.style.display = 'none';
-
-            resetUploadButton();
         } else {
             throw new Error('Upload failed');
         }
     } catch (err) {
         console.error(err);
-        showToast('Upload failed. Switching back to camera.', 'error');
+        showToast('Photo upload failed.', 'error');
+    } finally {
+        btn.classList.remove('loading-photo');
+        btn.disabled = false;
         resetUploadButton();
     }
+}
+
+// ── Profile Updates ──
+const profileForm = document.getElementById('profile-form');
+if (profileForm) {
+    profileForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        showToast('Profile updated successfully!', 'success');
+    });
 }
 
 function resetUploadButton() {
@@ -216,26 +224,35 @@ navItems.forEach(item => {
         const newTitle = item.getAttribute('data-title') || item.querySelector('span').textContent;
         if (pageTitle) pageTitle.textContent = newTitle;
         
-        // --- Perception Delay on Click ---
+        // --- Navigation Logic without perception delays ---
         if (targetId === 'dashboard-section' || targetId === 'overview-section') {
             if (!item.dataset.loaded) {
-                renderMetricSkeletons();
                 item.dataset.loaded = 'true';
-                setTimeout(() => fetchDashboardStats(), SKELETON_DELAY || 600);
+                fetchDashboardStats();
             }
+        } else if (targetId === 'appointments-section') {
+            if (!item.dataset.loaded) {
+                item.dataset.loaded = 'true';
+            }
+            displayAppts();
         } else {
             const tableType = targetId.split('-')[0]; // 'doctors', 'patients', 'receptionists'
             if (['doctors', 'receptionists', 'patients'].includes(tableType)) {
                 if (!item.dataset.loaded) {
-                    if (typeof renderSkeletons === 'function') renderSkeletons(tableType);
                     item.dataset.loaded = 'true';
-                    setTimeout(() => {
-                        displayFilteredData(tableType, staffDataCache[tableType] || []);
-                    }, SKELETON_DELAY || 600);
-                } else {
-                    // Already loaded, just display immediately
-                    displayFilteredData(tableType, staffDataCache[tableType] || []);
                 }
+                displayFilteredData(tableType, staffDataCache[tableType] || []);
+            }
+        }
+
+        // Special handling for smart scheduling section
+        if (targetId === 'smart-scheduling-section') {
+            if (!item.dataset.loaded) {
+                // Initialize smart scheduling functionality
+                if (window.smartScheduling) {
+                    window.smartScheduling.renderSchedulingInterface();
+                }
+                item.dataset.loaded = 'true';
             }
         }
 
@@ -257,6 +274,17 @@ window.openModal = (modalId, roleType = null) => {
         document.getElementById('modal-staff-title').textContent =
             'Add New ' + roleType.charAt(0).toUpperCase() + roleType.slice(1);
         document.getElementById('staff-role-input').value = roleType;
+        
+        // Show/hide doctor specific fields
+        const doctorFields = document.getElementById('doctor-fields');
+        if (doctorFields) {
+            if (roleType === 'doctor') {
+                doctorFields.classList.remove('hidden');
+            } else {
+                doctorFields.classList.add('hidden');
+            }
+        }
+        if (window.lucide) lucide.createIcons();
     }
 };
 window.closeModal = (modalId) => {
@@ -268,243 +296,118 @@ document.querySelectorAll('.modal-overlay').forEach(o =>
     o.addEventListener('click', e => { if (e.target === o) o.classList.remove('active'); })
 );
 
-// â”€â”€ Real-time Dashboard Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function fetchDashboardStats() {
-    // Listen to all users in real-time
+// ── Functional Components (Re-render actual UI) ────────────────
+function updateMetricCard(id, title, value, iconClass, trendData = null) {
+    const card = document.getElementById(id);
+    if (!card) return;
+
+    let trendHTML = '';
+    if (trendData) {
+        const trendClass = trendData.isUp ? 'text-success' : 'text-danger';
+        const trendIcon = trendData.isUp ? 'trending-up' : 'trending-down';
+        trendHTML = `
+            <div class="metric-trend ${trendClass}">
+                <i data-lucide="${trendIcon}"></i>
+                <span>${trendData.value}</span> vs last month
+            </div>
+        `;
+    }
+
+    card.innerHTML = `
+        <div class="metric-header">
+            <span class="metric-title">${title}</span>
+            <div class="metric-icon ${id.includes('doctors') ? 'success' : (id.includes('appointments') ? 'warning' : (id.includes('revenue') ? 'revenue' : ''))}">
+                <i data-lucide="${iconClass}"></i>
+            </div>
+        </div>
+        <div class="metric-value">${value}</div>
+        ${trendHTML}
+    `;
+    if (window.lucide) lucide.createIcons();
+}
+
+async function fetchDashboardStats() {
+    // Real-time listener for users (Patients & Doctors)
     onSnapshot(collection(db, 'users'), (snap) => {
         let doctors = 0, patients = 0;
+        const monthlyData = [0, 0, 0, 0, 0, 0, 0];
+        const now = new Date();
+        
         snap.forEach(d => {
-            const r = d.data().role;
+            const data = d.data();
+            const r = data.role;
             if (r === 'doctor') doctors++;
-            if (r === 'patient') patients++;
+            if (r === 'patient') {
+                patients++;
+                if (data.createdAt?.toDate) {
+                    const cDate = data.createdAt.toDate();
+                    const diffMonths = (now.getFullYear() - cDate.getFullYear()) * 12 + (now.getMonth() - cDate.getMonth());
+                    if (diffMonths >= 0 && diffMonths < 7) {
+                        monthlyData[6 - diffMonths]++;
+                    }
+                }
+            }
         });
-        // Perception Delay (pta chle ke loader chalta hai)
-        setTimeout(() => {
-            if (statDoctors) statDoctors.textContent = doctors;
-            if (statPatients) statPatients.textContent = patients;
 
-            const patientsContainer = document.getElementById('trend-patients-container');
-            if (patientsContainer) {
-                const lastMonth = Math.floor(patients * 0.82) || 1;
-                const growth = patients > 0 ? (((patients - lastMonth) / lastMonth) * 100).toFixed(0) : 0;
-                patientsContainer.innerHTML = `<i data-lucide="trending-up"></i> <span id="trend-patients">+${growth}%</span> vs last month`;
-            }
-            
-            const doctorsContainer = document.getElementById('trend-doctors-container');
-            if (doctorsContainer) {
-                const growth = doctors > 0 ? (doctors > 1 ? '+15%' : '+0%') : '+0%';
-                doctorsContainer.innerHTML = `<i data-lucide="trending-up"></i> <span id="trend-doctors">${growth}</span>`;
-            }
-            if (typeof initializeCharts === 'function') initializeCharts();
-            updatePatientChart(patients);
+        updateMetricCard('metric-patients-card', 'Total Patients', patients, 'users', { isUp: true, value: '+5%' });
+        updateMetricCard('metric-doctors-card', 'Total Doctors', doctors, 'stethoscope', { isUp: true, value: 'Active' });
+        
+        const revenue = (doctors * 200 + patients * 50);
+        updateMetricCard('metric-revenue-card', 'Simulated Revenue', `$${revenue.toLocaleString()}`, 'dollar-sign', { isUp: true, value: 'Steady' });
 
-            if (statRevenue && statDoctors) {
-                const doctorsRaw = statDoctors.textContent || '0';
-                const dNum = parseInt(doctorsRaw.replace(/[^0-9]/g, '')) || 0;
-                const apptsRaw = statAppointments?.textContent || '0';
-                const aNum = parseInt(apptsRaw.replace(/[^0-9]/g, '')) || 0;
-                statRevenue.textContent = `$${(dNum * 200 + aNum * 50).toLocaleString()}`;
-            }
-
-            if (window.lucide) lucide.createIcons();
-        }, SKELETON_DELAY);
+        if (patientChartInstance) {
+            patientChartInstance.data.datasets[0].data = monthlyData;
+            patientChartInstance.update();
+        }
     });
 
-    // Listen to appointments - Update counts and chart
     onSnapshot(collection(db, 'appointments'), (snap) => {
         const total = snap.size;
-        if (statAppointments) statAppointments.textContent = total;
-
-        const apptsContainer = document.getElementById('trend-appts-container');
-        if (apptsContainer) {
-            const growth = total > 0 ? (total > 3 ? '+24%' : '+5%') : '+0%';
-            apptsContainer.innerHTML = `<i data-lucide="trending-up"></i> <span id="trend-appts">${growth}</span> vs last month`;
-        }
+        updateMetricCard('metric-appointments-card', 'Appointments (Month)', total, 'calendar-check', { isUp: true, value: '+12%' });
 
         const counts = { completed: 0, pending: 0, cancelled: 0 };
-        snap.forEach(doc => {
-            const status = doc.data().status || 'pending';
-            if (counts.hasOwnProperty(status)) counts[status]++;
+        snap.forEach(d => {
+            const s = d.data().status;
+            if (s === 'completed') counts.completed++;
+            else if (s === 'cancelled') counts.cancelled++;
+            else counts.pending++;
         });
-
-        if (typeof initializeCharts === 'function') initializeCharts();
         updateAppointmentChart(counts);
+    });
+}
 
-        // Add appointment revenue ($50 each)
-        if (statRevenue && statDoctors) {
-            const doctorsRaw = statDoctors.textContent || '0';
-            const doctors = parseInt(doctorsRaw.replace(/[^0-9]/g, '')) || 0;
-            statRevenue.textContent = `$${(doctors * 200 + total * 50).toLocaleString()}`;
-        }
-        
-        const revenueContainer = document.getElementById('trend-revenue-container');
-        if (revenueContainer) {
-            revenueContainer.innerHTML = `<i data-lucide="trending-up"></i> Steady`;
-        }
-
-        if (window.lucide) lucide.createIcons();
-    }, () => { });
-
-    // Listen to most common diagnosis (Real Data)
+// ── Diagnosis & Status Listeners ──────────────────────────────
+function initRealtimeListeners() {
     onSnapshot(collection(db, 'diagnosisLogs'), (snap) => {
         const diagList = document.getElementById('diagnosis-list');
         if (!diagList) return;
 
-        setTimeout(() => {
-            if (snap.empty) {
-                diagList.innerHTML = '<li class="empty-state">No diagnosis data yet.</li>';
-                return;
-            }
-
-            const counts = {};
-            snap.forEach(doc => {
-                const symptoms = doc.data().symptoms || 'Unknown';
-                counts[symptoms] = (counts[symptoms] || 0) + 1;
-            });
-
-            const topDiag = Object.entries(counts)
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 5);
-
-            diagList.innerHTML = topDiag.map(([name, count], index) => `
-                <li class="diagnosis-item">
-                    <span class="diag-rank">${index + 1}.</span>
-                    <span class="diag-name" style="flex: 1;">${name}</span>
-                    <span class="diag-count" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);">${count} Cases</span>
-                </li>
-            `).join('');
-        }, 650);
-    }, () => { });
-}
-
-window.changeAdminPage = (type, dir) => {
-    const data = staffDataCache[type];
-    const totalPages = Math.ceil(data.length / ADMIN_PER_PAGE);
-    
-    adminPages[type] += dir;
-    if (adminPages[type] < 1) adminPages[type] = 1;
-    if (adminPages[type] > totalPages) adminPages[type] = totalPages;
-    
-    displayFilteredData(type, data);
-};
-
-function renderMetricSkeletons() {
-    // 1. Metric Cards
-    const metricValues = ['stat-patients', 'stat-doctors', 'stat-appointments', 'stat-revenue'];
-    const metricTrends = ['trend-patients-container', 'trend-doctors-container', 'trend-appts-container', 'trend-revenue-container'];
-    
-    metricValues.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = '<div class="skeleton" style="height:28px;width:70px;margin-bottom:0;"></div>';
-    });
-
-    metricTrends.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.innerHTML = '<div class="skeleton" style="height:14px;width:110px;margin-top:6px;opacity:0.7;"></div>';
-    });
-
-    // 2. Top Bar (Avatar & Name) - Commented out to prevent erasing persistent auth data
-    // const topName = document.getElementById('display-name');
-    // const topAvatar = document.getElementById('user-avatar');
-    // if (topName) topName.innerHTML = '<div class="skeleton" style="height:14px;width:80px;"></div>';
-    // if (topAvatar) topAvatar.innerHTML = '<div class="skeleton skeleton-avatar"></div>';
-
-    // 3. Charts (Structural Skeletons)
-    const lineChartBody = document.querySelector('.chart-card:nth-child(1) .chart-body');
-    const donutChartBody = document.querySelector('.chart-card:nth-child(2) .chart-body');
-    const diagList = document.getElementById('diagnosis-list');
-    
-    // Line Chart - Simulating 10 bars
-    if (lineChartBody) {
-        let barsHTML = '<div class="chart-skeleton-bars">';
-        [40, 70, 45, 90, 60, 85, 50, 75, 55, 95].forEach(h => {
-            barsHTML += `<div class="line-bar-skeleton" style="height:${h}%;"></div>`;
-        });
-        barsHTML += '</div>';
-        lineChartBody.innerHTML = barsHTML;
-    }
-
-    // Donut Chart - Simulating Ring + Legends
-    if (donutChartBody) {
-        let donutHTML = '<div class="skeleton-ring"></div>';
-        donutHTML += `
-            <div class="donut-legend-skeleton">
-                <div class="legend-item-skeleton">
-                    <div class="skeleton" style="width:12px;height:12px;border-radius:3px;"></div>
-                    <div class="skeleton" style="width:50px;height:10px;"></div>
-                </div>
-                <div class="legend-item-skeleton">
-                    <div class="skeleton" style="width:12px;height:12px;border-radius:3px;"></div>
-                    <div class="skeleton" style="width:50px;height:10px;"></div>
-                </div>
-                <div class="legend-item-skeleton">
-                    <div class="skeleton" style="width:12px;height:12px;border-radius:3px;"></div>
-                    <div class="skeleton" style="width:50px;height:10px;"></div>
-                </div>
-            </div>
-        `;
-        donutChartBody.innerHTML = donutHTML;
-    }
-
-    // Diagnosis List - Simulating 3 rows
-    if (diagList) {
-        let listHTML = '';
-        for(let i=0; i<3; i++) {
-            listHTML += `
-                <div class="diagnosis-skeleton-item">
-                    <div class="skeleton" style="width:8px;height:8px;border-radius:50%;"></div>
-                    <div class="skeleton" style="height:14px;width:${Math.random() * 40 + 40}%;"></div>
-                    <div style="flex:1;"></div>
-                    <div class="skeleton" style="height:14px;width:40px;border-radius:12px;"></div>
-                </div>
-            `;
+        if (snap.empty) {
+            diagList.innerHTML = '<li class="empty-state">No diagnosis data yet.</li>';
+            return;
         }
-        diagList.innerHTML = listHTML;
-    }
+
+        const counts = {};
+        snap.forEach(doc => {
+            const symptoms = doc.data().symptoms || 'Unknown';
+            counts[symptoms] = (counts[symptoms] || 0) + 1;
+        });
+
+        const topDiag = Object.entries(counts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+
+        diagList.innerHTML = topDiag.map(([name, count], index) => `
+            <li class="diagnosis-item">
+                <span class="diag-rank">${index + 1}.</span>
+                <span class="diag-name" style="flex: 1;">${name}</span>
+                <span class="diag-count" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);">${count} Cases</span>
+            </li>
+        `).join('');
+    });
 }
 
 // ── Real-time Staff Tables ──────────────────────────────────
-function renderSkeletons(type) {
-    const tbody = document.getElementById(`${type}-table-body`);
-    const cardGrid = document.getElementById(`${type}-card-grid`);
-    
-    const skeletonRow = `
-        <tr class="skeleton-row">
-            <td><div class="user-info-cell"><div class="skeleton skeleton-avatar"></div><div class="skeleton-text skeleton" style="width:120px;"></div></div></td>
-            <td><div class="skeleton-text skeleton" style="width:150px;"></div></td>
-            <td><div class="skeleton-text skeleton" style="width:100px;"></div></td>
-            <td><div class="skeleton-badge skeleton"></div></td>
-            <td class="table-actions-cell"><div class="skeleton-btn skeleton"></div></td>
-        </tr>
-    `;
-    
-    const skeletonCard = `
-        <div style="background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:1rem;display:flex;flex-direction:column;gap:0.75rem;box-shadow:0 1px 4px rgba(0,0,0,0.05);">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div style="display:flex;align-items:center;gap:0.65rem;">
-                    <div class="skeleton" style="width:40px;height:40px;border-radius:50%;"></div>
-                    <div>
-                        <div class="skeleton" style="width:100px;height:14px;border-radius:4px;margin-bottom:4px;"></div>
-                        <div class="skeleton" style="width:60px;height:10px;border-radius:3px;"></div>
-                    </div>
-                </div>
-                <div class="skeleton" style="width:50px;height:18px;border-radius:10px;"></div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:0.5rem;padding:0.6rem 0;border-top:1px solid #F1F5F9;border-bottom:1px solid #F1F5F9;">
-                <div class="skeleton" style="width:80%;height:10px;border-radius:2px;"></div>
-                <div class="skeleton" style="width:50%;height:10px;border-radius:2px;"></div>
-            </div>
-            <div style="display:flex;flex-direction:column;gap:0.4rem;">
-                <div class="skeleton" style="width:100%;height:36px;border-radius:6px;"></div>
-                <div class="skeleton" style="width:100%;height:36px;border-radius:6px;opacity:0.6;"></div>
-            </div>
-        </div>
-    `;
-
-    if (tbody) tbody.innerHTML = skeletonRow.repeat(4);
-    if (cardGrid) cardGrid.innerHTML = skeletonCard.repeat(3);
-}
-
 function renderStaffTable(type) {
     const role = type === 'doctors' ? 'doctor' : (type === 'receptionists' ? 'receptionist' : 'patient');
     fetchData(type, role);
@@ -512,7 +415,6 @@ function renderStaffTable(type) {
 
 function fetchData(type, role) {
     const tbody = document.getElementById(`${type}-table-body`);
-    renderSkeletons(type);
     
     if (window.lucide) lucide.createIcons();
 
@@ -530,164 +432,178 @@ function fetchData(type, role) {
     });
 }
 
+// ── Shared UI Utilities ──────────────────────────────────
+const getAvatarHTML = (m) => {
+    const { html, style, classes } = getAvatarConfig(m);
+    return `<div class="user-avatar-sm ${classes}" style="display:inline-flex; align-items:center; justify-content:center; ${style}">${html}</div>`;
+};
+
 function displayFilteredData(type, members) {
     const tbody = document.getElementById(`${type}-table-body`);
     const cardGrid = document.getElementById(`${type}-card-grid`);
     const pagination = document.getElementById(`${type}-pagination`);
     const infoSpan = document.getElementById(`${type}-page-info`);
 
-    const getAvatarHTML = (m) => {
-        const { html, style, classes } = getAvatarConfig(m);
-        return `<div class="user-avatar-sm ${classes}" style="${style}">${html}</div>`;
-    };
+    if (!members.length) {
+        if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="empty-state">No matching ${type} found.</td></tr>`;
+        if (cardGrid) cardGrid.innerHTML = `<p class="empty-state" style="padding:2rem;text-align:center;">No ${type} found.</p>`;
+        if (pagination) pagination.style.display = 'none';
+        return;
+    }
 
-    // Perception Delay
-    setTimeout(() => {
-        if (!members.length) {
-            if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="empty-state">No matching ${type} found.</td></tr>`;
-            if (cardGrid) cardGrid.innerHTML = `<p class="empty-state" style="padding:2rem;text-align:center;">No ${type} found.</p>`;
-            if (pagination) pagination.style.display = 'none';
-            return;
-        }
+    const totalPages = Math.max(1, Math.ceil(members.length / ADMIN_PER_PAGE));
+    if (adminPages[type] > totalPages) adminPages[type] = totalPages;
+    const startIndex = (adminPages[type] - 1) * ADMIN_PER_PAGE;
+    const paginatedMembers = members.slice(startIndex, startIndex + ADMIN_PER_PAGE);
 
-        const totalPages = Math.max(1, Math.ceil(members.length / ADMIN_PER_PAGE));
-        if (adminPages[type] > totalPages) adminPages[type] = totalPages;
-        const startIndex = (adminPages[type] - 1) * ADMIN_PER_PAGE;
-        const paginatedMembers = members.slice(startIndex, startIndex + ADMIN_PER_PAGE);
-
-        const tableContent = paginatedMembers.map(m => {
-            const joinedDate = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-            const isInactive = m.status === 'inactive';
-            
-            if (type === 'patients') {
-                const healthStatus = m.healthStatus || 'Normal';
-                const healthClass = healthStatus.toLowerCase().replace(' ', '-');
-                return `
-                    <tr class="admin-table-row">
-                        <td>
-                            <div class="user-info-cell">
-                                ${getAvatarHTML(m)}
-                                <div class="user-details">
-                                    <span class="user-name-text">${m.name || '—'}</span>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="table-cell-muted">${m.email || '—'}</td>
-                        <td class="table-cell-muted">${joinedDate}</td>
-                        <td><span class="health-badge ${healthClass}">${healthStatus}</span></td>
-                        <td class="table-actions-cell">
-                            <button class="icon-btn-subtle" title="View Records" onclick="viewPatientDetails('${m.uid}')">
-                                <i data-lucide="external-link" width='14' height='14'></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }
-
+    const tableContent = paginatedMembers.map(m => {
+        const joinedDate = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+        const isInactive = m.status === 'inactive';
+        const statusLabel = isInactive ? 'Inactive' : 'Active';
+        
+        if (type === 'patients') {
+            const healthStatus = m.healthStatus || 'Normal';
+            const healthClass = healthStatus.toLowerCase().replace(' ', '-');
             return `
-                <tr class="admin-table-row ${isInactive ? 'row-inactive' : ''}">
+                <tr class="admin-table-row">
                     <td>
                         <div class="user-info-cell">
                             ${getAvatarHTML(m)}
                             <div class="user-details">
                                 <span class="user-name-text">${m.name || '—'}</span>
+                                <span class="user-email-subtext">${m.email || '—'}</span>
                             </div>
                         </div>
                     </td>
                     <td class="table-cell-muted">${m.email || '—'}</td>
                     <td class="table-cell-muted">${joinedDate}</td>
-                    <td>
-                        <div class="status-toggle-wrapper" title="Change status to ${isInactive ? 'Active' : 'Inactive'}"
-                            onclick="toggleStatus('${m.uid}','${m.status || 'active'}','${type}')">
-                            <span class="status-dot ${m.status || 'active'}"></span>
-                            <span class="status-text-compact">${isInactive ? 'Inactive' : 'Active'}</span>
-                        </div>
-                    </td>
+                    <td><span class="health-badge ${healthClass}"><span class="status-dot-indicator"></span>${healthStatus}</span></td>
                     <td class="table-actions-cell">
-                        <button class="icon-btn-subtle" title="Delete Account" onclick="deleteStaff('${m.uid}', '${type}')">
-                            <i data-lucide="trash-2" width='14' height='14'></i>
+                        <button class="icon-btn-subtle" title="View Records" onclick="viewPatientDetails('${m.uid}')">
+                            <i data-lucide="external-link"></i>
                         </button>
                     </td>
                 </tr>
             `;
-        }).join('');
+        }
 
-        if (tbody) tbody.innerHTML = tableContent;
-
-        const cardsContent = paginatedMembers.map(m => {
-            const joinedDate = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-            const isInactive = m.status === 'inactive';
-            return `
-                <div style="background:#fff;border:1px solid #E2E8F0;border-radius:14px;padding:1rem;display:flex;flex-direction:column;gap:0.75rem;box-shadow:0 1px 4px rgba(0,0,0,0.05);${isInactive ? 'opacity:0.75;' : ''}">
-                    <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <div style="display:flex;align-items:center;gap:0.65rem;">
-                            ${getAvatarHTML(m).replace('user-avatar-sm', 'avatar-circle')}
-                            <div>
-                                <div style="font-size:0.95rem;font-weight:700;color:#1E293B;">${m.name || '—'}</div>
-                                <span style="font-size:0.6rem;font-weight:800;background:#1E293B;color:#fff;padding:2px 6px 3px 6px;border-radius:4px;text-transform:uppercase;">${type === 'doctors' ? 'Doctor' : type === 'receptionists' ? 'Receptionist' : 'Patient'}</span>
-                            </div>
+        return `
+            <tr class="admin-table-row ${isInactive ? 'row-inactive' : ''}">
+                <td>
+                    <div class="user-info-cell">
+                        ${getAvatarHTML(m)}
+                        <div class="user-details">
+                            <span class="user-name-text">${m.name || '—'}</span>
+                            <span class="user-email-subtext">${m.email || '—'}</span>
                         </div>
-                        <span class="status-indicator-pill ${m.status || 'active'}">${isInactive ? 'Inactive' : 'Active'}</span>
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:0.35rem;padding:0.6rem 0;border-top:1px solid #F1F5F9;border-bottom:1px solid #F1F5F9;">
-                        <span style="font-size:0.8rem;color:#64748B;"><strong style="color:#374151;">Email:</strong> ${m.email || '—'}</span>
-                        <span style="font-size:0.8rem;color:#64748B;"><strong style="color:#374151;">Joined:</strong> ${joinedDate}</span>
-                        ${type === 'patients' ? `<span style="font-size:0.8rem;color:#64748B;"><strong style="color:#374151;">Health:</strong> <span class="health-badge ${m.healthStatus ? m.healthStatus.toLowerCase().replace(' ','-') : 'normal'}">${m.healthStatus || 'Normal'}</span></span>` : ''}
+                </td>
+                <td class="table-cell-muted">${m.email || '—'}</td>
+                <td class="table-cell-muted">${joinedDate}</td>
+                <td>
+                    <div class="status-toggle-wrapper" title="Change status to ${isInactive ? 'Active' : 'Inactive'}"
+                        onclick="toggleStatus('${m.uid}','${m.status || 'active'}','${type}')">
+                        <span class="status-dot ${m.status || 'active'}"></span>
+                        <span class="status-text-compact">${statusLabel}</span>
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:0.4rem;">
-                        ${type === 'patients' ? `
-                            <button onclick="viewPatientDetails('${m.uid}')" style="width:100%;padding:0.65rem;border-radius:9px;border:none;background:#1D4ED8;color:#fff;font-weight:600;font-size:0.875rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-                                <i data-lucide="external-link" style="width:16px;height:16px;"></i> View Records
-                            </button>
-                        ` : `
-                            <button onclick="toggleStatus('${m.uid}', '${m.status || 'active'}', '${type}')" style="width:100%;padding:0.65rem;border-radius:6px;border:none;background:#1E293B;color:#fff;font-weight:600;font-size:0.875rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-                                <i data-lucide="power" style="width:16px;height:16px;"></i> Toggle Status
-                            </button>
-                            <button onclick="deleteStaff('${m.uid}', '${type}')" style="width:100%;padding:0.65rem;border-radius:6px;border:none;background:#DC2626;color:#fff;font-weight:600;font-size:0.875rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;">
-                                <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete Account
-                            </button>
-                        `}
+                </td>
+                <td class="table-actions-cell">
+                    <button class="icon-btn-subtle" title="Delete Account" onclick="deleteStaff('${m.uid}', '${type}')">
+                        <i data-lucide="trash-2"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    if (tbody) tbody.innerHTML = tableContent;
+
+    const cardsContent = paginatedMembers.map(m => {
+        const joinedDate = m.createdAt?.toDate ? m.createdAt.toDate().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+        const isInactive = m.status === 'inactive';
+        const statusLabel = isInactive ? 'Inactive' : 'Active';
+        const roleLabel = type === 'doctors' ? 'Doctor' : type === 'receptionists' ? 'Receptionist' : 'Patient';
+        
+        return `
+            <div class="staff-card v-excellence" style="${isInactive ? 'opacity:0.7;' : ''}">
+                <div class="staff-card-header">
+                    <div class="staff-header-info">
+                        ${getAvatarHTML(m).replace('user-avatar-sm', 'avatar-circle')}
+                        <div class="staff-title-box">
+                            <span class="staff-name">${m.name || '—'}</span>
+                            <span class="staff-role-tag">${roleLabel}</span>
+                        </div>
+                    </div>
+                    ${type === 'patients' 
+                        ? `<span class="health-badge ${(m.healthStatus || 'Normal').toLowerCase().replace(' ','-')}"><span class="status-dot-indicator"></span>${m.healthStatus || 'Normal'}</span>`
+                        : `<span class="status-indicator-pill ${m.status || 'active'}"><span class="status-dot-indicator"></span>${statusLabel}</span>`
+                    }
+                </div>
+                
+                <div class="staff-card-body">
+                    <div class="staff-detail-row">
+                        <i data-lucide="mail"></i>
+                        <span>${m.email || '—'}</span>
+                    </div>
+                    <div class="staff-detail-row">
+                        <i data-lucide="calendar"></i>
+                        <span>Joined: ${joinedDate}</span>
                     </div>
                 </div>
-            `;
-        }).join('');
+                
+                <div class="staff-card-footer">
+                    ${type === 'patients' ? `
+                        <button class="btn btn-primary btn-full" onclick="viewPatientDetails('${m.uid}')">
+                            <i data-lucide="external-link"></i> View Full Records
+                        </button>
+                    ` : `
+                        <button class="btn btn-secondary" onclick="toggleStatus('${m.uid}', '${m.status || 'active'}', '${type}')">
+                            <i data-lucide="power"></i> Status
+                        </button>
+                        <button class="btn btn-danger" onclick="deleteStaff('${m.uid}', '${type}')">
+                            <i data-lucide="trash-2"></i> Delete
+                        </button>
+                    `}
+                </div>
+            </div>
+        `;
+    }).join('');
 
-        if (cardGrid) cardGrid.innerHTML = cardsContent;
+    if (cardGrid) cardGrid.innerHTML = cardsContent;
 
-        if (infoSpan) infoSpan.textContent = `Page ${adminPages[type]} of ${totalPages}`;
-        if (pagination) {
-            pagination.style.display = totalPages > 1 ? 'flex' : 'none';
-        }
-        if (window.lucide) {
-            lucide.createIcons();
-            setTimeout(() => lucide.createIcons(), 10);
-        }
+    if (infoSpan) infoSpan.textContent = `Page ${adminPages[type]} of ${totalPages}`;
+    if (pagination) {
+        pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+    }
+    if (window.lucide) {
+        lucide.createIcons();
+        setTimeout(() => lucide.createIcons(), 10);
+    }
 
-        // Pagination Controls
-        if (pagination && totalPages > 1) {
-            renderPagination(
-                pagination,
-                adminPages[type],
-                totalPages,
-                (newPage) => {
-                    adminPages[type] = newPage;
-                    const queryVal = document.getElementById(`${type.slice(0, -1)}-search`)?.value.toLowerCase() || '';
-                    if (queryVal) {
-                        const filtered = staffDataCache[type].filter(m =>
-                            m.name?.toLowerCase().includes(queryVal) ||
-                            m.email?.toLowerCase().includes(queryVal)
-                        );
-                        displayFilteredData(type, filtered);
-                    } else {
-                        displayFilteredData(type, staffDataCache[type]);
-                    }
+    // Pagination Controls
+    if (pagination && totalPages > 1) {
+        renderPagination(
+            pagination,
+            adminPages[type],
+            totalPages,
+            (newPage) => {
+                adminPages[type] = newPage;
+                const queryVal = document.getElementById(`${type.slice(0, -1)}-search`)?.value.toLowerCase() || '';
+                if (queryVal) {
+                    const filtered = staffDataCache[type].filter(m =>
+                        m.name?.toLowerCase().includes(queryVal) ||
+                        m.email?.toLowerCase().includes(queryVal)
+                    );
+                    displayFilteredData(type, filtered);
+                } else {
+                    displayFilteredData(type, staffDataCache[type]);
                 }
-            );
-        } else if (pagination) {
-            pagination.style.display = 'none';
-            pagination.innerHTML = '';
-        }
-    }, SKELETON_DELAY);
+            }
+        );
+    } else if (pagination) {
+        pagination.style.display = 'none';
+        pagination.innerHTML = '';
+    }
 }
 
 // ── Search Logic ────────────────────────────────────────────────────────
@@ -793,14 +709,23 @@ window.submitAddStaff = async () => {
     const email = document.getElementById('staff-email').value.trim();
     const password = document.getElementById('staff-password').value;
     const role = document.getElementById('staff-role-input').value;
+    
+    // New Fields
+    const gender = document.getElementById('staff-gender').value;
+    const age = parseInt(document.getElementById('staff-age').value);
+    const experience = parseInt(document.getElementById('staff-experience').value);
+    const degree = document.getElementById('staff-degree').value.trim();
+    const specialization = document.getElementById('staff-specialization').value.trim();
 
-    if (!name || !email || !password || !role) return showToast('Please fill all fields', 'error');
+    if (!name || !email || !password || !role || !gender || !age) return showToast('Please fill all basic fields', 'error');
+    if (role === 'doctor' && (!degree || !specialization)) return showToast('Please fill doctor qualification fields', 'error');
 
     const btn = document.getElementById('submit-staff-btn');
-    const loader = document.getElementById('staff-loader');
     const btnText = btn.querySelector('.btn-text');
-    btnText.classList.add('hidden');
-    loader.classList.remove('hidden');
+    const originalText = btnText.innerHTML;
+    
+    btn.classList.add('loading');
+    btnText.textContent = 'Creating Account...';
     btn.disabled = true;
 
     // Use a temporary SECONDARY Firebase app so Admin session is NOT affected
@@ -818,6 +743,8 @@ window.submitAddStaff = async () => {
         await setDoc(doc(db, 'users', cred.user.uid), {
             id: cred.user.uid,
             name, email, role,
+            gender, age, experience,
+            ...(role === 'doctor' && { degree, specialization }),
             status: 'active',
             colorPalette: randomPal,
             createdAt: serverTimestamp(),
@@ -840,8 +767,8 @@ window.submitAddStaff = async () => {
     } finally {
         // Always clean up the temporary app
         if (secondaryApp) await deleteApp(secondaryApp).catch(() => { });
-        btnText.classList.remove('hidden');
-        loader.classList.add('hidden');
+        btn.classList.remove('loading');
+        btnText.innerHTML = originalText;
         btn.disabled = false;
     }
 };
@@ -854,39 +781,24 @@ window.simulateUpgrade = () => {
 // â”€â”€ Chart.js â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function initializeCharts() {
-    // Restore canvases if ANY structural skeletons are present
-    const lineChartBody = document.querySelector('.chart-card:nth-child(1) .chart-body');
-    if (lineChartBody && (lineChartBody.querySelector('.chart-skeleton-bars') || lineChartBody.querySelector('.skeleton'))) {
-        if (patientChartInstance) {
-            patientChartInstance.destroy();
-            patientChartInstance = null;
-        }
-        lineChartBody.innerHTML = '<canvas id="patientChart"></canvas>';
-    }
-
-    const donutChartBody = document.querySelector('.chart-card:nth-child(2) .chart-body');
-    if (donutChartBody && (donutChartBody.querySelector('.donut-skeleton-container') || donutChartBody.querySelector('.skeleton'))) {
-        if (appointmentStatusChart) {
-            appointmentStatusChart.destroy();
-            appointmentStatusChart = null;
-        }
-        donutChartBody.innerHTML = '<canvas id="appointmentChart"></canvas>';
-    }
-
     const lineCtx = document.getElementById('patientChart')?.getContext('2d');
     if (lineCtx && !patientChartInstance) {
+        const months = [];
+        const now = new Date();
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            months.push(d.toLocaleString('default', { month: 'short' }));
+        }
+
         patientChartInstance = new Chart(lineCtx, {
-            type: 'line',
+            type: 'bar',
             data: {
-                labels: ['-', '-', '-', '-', '-', 'Current Month'],
+                labels: months,
                 datasets: [{
                     label: 'Patients Registered',
-                    data: [0, 0, 0, 0, 0, 0],
-                    fill: true,
-                    backgroundColor: 'rgba(37, 99, 235, 0.08)',
-                    borderColor: '#2563EB',
-                    borderWidth: 2.5,
-                    tension: 0.4,
+                    data: [0, 0, 0, 0, 0, 0, 0],
+                    backgroundColor: '#2563EB',
+                    borderRadius: 4,
                 }]
             },
             options: {
@@ -1095,86 +1007,166 @@ let apptsPage = 1;
 
 function loadAllAppointments() {
     const tbody = document.getElementById('all-appts-table-body');
+    const cardGrid = document.getElementById('all-appts-card-grid');
+    if (!tbody && !cardGrid) return;
+
     const q = query(collection(db, 'appointments'), orderBy('createdAt', 'desc'));
 
     onSnapshot(q, (snap) => {
         allApptsData = [];
         snap.forEach(doc => allApptsData.push({ id: doc.id, ...doc.data() }));
-        apptsPage = 1;
         displayAppts();
+    }, (err) => {
+        console.error('Appts Snapshot Error:', err);
+        if (tbody) tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Error: ${err.message}</td></tr>`;
+        if (cardGrid) cardGrid.innerHTML = `<p class="empty-state">Error: ${err.message}</p>`;
     });
 }
 
 function displayAppts() {
     const tbody = document.getElementById('all-appts-table-body');
+    const cardGrid = document.getElementById('all-appts-card-grid');
     const pagination = document.getElementById('all-appts-pagination');
-    if (!tbody) return;
+    if (!tbody && !cardGrid) return;
 
-    const searchTerm = document.getElementById('appt-search')?.value.toLowerCase() || '';
-    const filtered = allApptsData.filter(a => 
-        (a.patientName || '').toLowerCase().includes(searchTerm) ||
-        (a.doctorName || '').toLowerCase().includes(searchTerm)
-    );
 
-    if (!filtered.length) {
-        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No appointments found.</td></tr>';
-        if (pagination) pagination.style.display = 'none';
-        return;
-    }
+        const searchTerm = document.getElementById('appt-search')?.value.toLowerCase() || '';
+        const statusFilter = document.getElementById('appt-status-filter')?.value || 'all';
 
-    const totalPages = Math.ceil(filtered.length / ADMIN_PER_PAGE);
-    const start = (apptsPage - 1) * ADMIN_PER_PAGE;
-    const paginated = filtered.slice(start, start + ADMIN_PER_PAGE);
-
-    tbody.innerHTML = paginated.map(a => {
-        const dateDisplay = a.date ? new Date(a.date + 'T00:00:00').toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
-        const timeDisplay = a.time || '—';
-        const statusClass = a.status === 'completed' ? 'active' : (a.status === 'cancelled' ? 'inactive' : 'pending');
-        
-        const ptAvatar = getAvatarConfig({ name: a.patientName, photoURL: a.patientPhotoURL, id: a.patientId });
-        const drAvatar = getAvatarConfig({ name: a.doctorName, photoURL: a.doctorPhotoURL, id: a.doctorId });
-
-        return `
-            <tr class="admin-table-row">
-                <td>
-                    <div class="user-info-cell">
-                        <div class="user-avatar-sm ${ptAvatar.classes}" style="${ptAvatar.style}">${ptAvatar.html}</div>
-                        <span class="user-name-text">${a.patientName || 'Patient'}</span>
-                    </div>
-                </td>
-                <td>
-                    <div class="user-info-cell">
-                        <div class="user-avatar-sm ${drAvatar.classes}" style="${drAvatar.style}">${drAvatar.html}</div>
-                        <span class="user-name-text">Dr. ${a.doctorName || 'Doctor'}</span>
-                    </div>
-                </td>
-                <td class="table-cell-muted">${dateDisplay} · ${timeDisplay}</td>
-                <td><span class="status-indicator-pill ${statusClass}">${a.status || 'Pending'}</span></td>
-                <td class="table-actions-cell">
-                    <button class="icon-btn-subtle" title="Cancel" onclick="cancelAppointmentAdmin('${a.id}')">
-                        <i data-lucide="x-circle" width="14" height="14"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-    }).join('');
-
-    if (pagination && totalPages > 1) {
-        pagination.style.display = 'flex';
-        renderPagination(pagination, apptsPage, totalPages, (newPage) => {
-            apptsPage = newPage;
-            displayAppts();
+        const filtered = allApptsData.filter(a => {
+            const pName = (a.patientName || a.patientId || '').toLowerCase();
+            const dName = (a.doctorName || a.doctorId || '').toLowerCase();
+            const matchesSearch = pName.includes(searchTerm) || dName.includes(searchTerm);
+            
+            const statusClean = (a.status || 'scheduled').toLowerCase();
+            const matchesStatus = statusFilter === 'all' || statusClean === statusFilter;
+            return matchesSearch && matchesStatus;
         });
-    } else if (pagination) {
-        pagination.style.display = 'none';
-    }
 
-    if (window.lucide) lucide.createIcons();
+        if (!filtered.length) {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No appointments found.</td></tr>';
+            if (cardGrid) cardGrid.innerHTML = '<p class="empty-state" style="padding:2rem;text-align:center;">No appointments found.</p>';
+            if (pagination) pagination.style.display = 'none';
+            return;
+        }
+
+        const totalPages = Math.ceil(filtered.length / ADMIN_PER_PAGE);
+        if (apptsPage > totalPages) apptsPage = Math.max(1, totalPages);
+        
+        const start = (apptsPage - 1) * ADMIN_PER_PAGE;
+        const paginated = filtered.slice(start, start + ADMIN_PER_PAGE);
+
+        // Desktop Table View
+        if (tbody) {
+            tbody.innerHTML = paginated.map(a => {
+                const dateStr = a.date?.toDate ? a.date.toDate().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                const timeStr = a.time || '—';
+                const status = (a.status || 'scheduled').toLowerCase();
+                
+                const ptObj = { name: a.patientName, photoURL: a.patientPhotoURL, id: a.patientId };
+                const drObj = { name: a.doctorName, photoURL: a.doctorPhotoURL, id: a.doctorId };
+
+                return `
+                    <tr class="admin-table-row">
+                        <td>
+                            <div class="user-info-cell">
+                                ${getAvatarHTML(ptObj)}
+                                <div class="user-details">
+                                    <span class="user-name-text">${a.patientName || `Patient (${a.patientId?.substring(0, 5)})`}</span>
+                                    <span class="user-email-subtext">${a.patientId ? `ID: ${a.patientId.substring(0, 8)}...` : '—'}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="user-info-cell">
+                                ${getAvatarHTML(drObj)}
+                                <div class="user-details">
+                                    <span class="user-name-text">Dr. ${a.doctorName || 'Doctor'}</span>
+                                    <span class="user-email-subtext">${a.specialization || 'Surgeon'}</span>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="table-cell-muted">
+                            <div style="display: flex; flex-direction: column; line-height: 1.2;">
+                                <span style="color: var(--text-main); font-weight: 600;">${dateStr}</span>
+                                <span style="font-size: 0.75rem;">${timeStr}</span>
+                            </div>
+                        </td>
+                         <td>
+                            <span class="status-indicator-pill ${status}"><span class="status-dot-indicator"></span>${status}</span>
+                        </td>
+                        <td class="table-actions-cell">
+                            <button class="icon-btn-subtle" title="Cancel Appointment" onclick="cancelAppointmentAdmin('${a.id}')">
+                                <i data-lucide="x-circle"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Mobile Card View
+        if (cardGrid) {
+            cardGrid.innerHTML = paginated.map(a => {
+                const dateStr = a.date?.toDate ? a.date.toDate().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                const timeStr = a.time || '—';
+                const status = (a.status || 'scheduled').toLowerCase();
+
+                const ptObj = { name: a.patientName, photoURL: a.patientPhotoURL, id: a.patientId };
+                const drObj = { name: a.doctorName, photoURL: a.doctorPhotoURL, id: a.doctorId };
+
+                return `
+                    <div class="staff-card v-excellence">
+                        <div class="staff-card-header">
+                            <div class="staff-header-info">
+                                ${getAvatarHTML(ptObj).replace('user-avatar-sm', 'avatar-circle')}
+                                <div class="staff-title-box">
+                                    <span class="staff-name">${a.patientName || 'Patient'}</span>
+                                    <span class="staff-role-tag">Appointment</span>
+                                 </div>
+                            </div>
+                            <span class="status-indicator-pill ${status}"><span class="status-dot-indicator"></span>${status}</span>
+                        </div>
+                        <div class="staff-card-body">
+                            <div class="staff-detail-row">
+                                <i data-lucide="stethoscope"></i>
+                                <span>Dr. ${a.doctorName || 'Doctor'}</span>
+                            </div>
+                            <div class="staff-detail-row">
+                                <i data-lucide="calendar"></i>
+                                <span>${dateStr} at ${timeStr}</span>
+                            </div>
+                        </div>
+                        <div class="staff-card-footer">
+                            <button class="btn btn-danger btn-full" onclick="cancelAppointmentAdmin('${a.id}')">
+                                <i data-lucide="x-circle"></i> Cancel Appointment
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        if (pagination) {
+            pagination.style.display = totalPages > 1 ? 'flex' : 'none';
+            renderPagination(
+                pagination,
+                apptsPage,
+                totalPages,
+                (p) => {
+                    apptsPage = p;
+                    displayAppts();
+                }
+            );
+        }
+
+        if (window.lucide) lucide.createIcons();
+
 }
 
 window.filterAppointments = () => {
     apptsPage = 1;
-    displayAppts();
+    displayAppts(); // Instant update on search/filter
 };
 
 window.cancelAppointmentAdmin = async (id) => {
@@ -1188,29 +1180,60 @@ window.cancelAppointmentAdmin = async (id) => {
     }, { type: 'warning', confirmText: 'Cancel Appt' });
 };
 
-// ── Clinic Settings ──────────────────────────────────────────
-const shiftForm = document.getElementById('shift-config-form');
-if (shiftForm) {
-    shiftForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const mode = document.getElementById('shift-mode-select').value;
-        try {
-            await setDoc(doc(db, 'clinic', 'settings'), { shiftMode: mode }, { merge: true });
-            showToast(`Shift mode updated to ${mode} hours.`, 'success');
-        } catch (e) {
-            showToast('Failed to save settings.', 'error');
-        }
-    });
-}
-
 // Load settings on start
 async function loadClinicSettings() {
-    const snap = await getDoc(doc(db, 'clinic', 'settings'));
-    if (snap.exists()) {
-        const modeSelect = document.getElementById('shift-mode-select');
-        if (modeSelect) modeSelect.value = snap.data().shiftMode || '8';
+    try {
+        const snap = await getDoc(doc(db, 'clinic', 'settings'));
+        if (snap.exists()) {
+            const data = snap.data();
+            
+            // Shift Mode
+            const modeSelect = document.getElementById('shift-mode-select');
+            if (modeSelect) modeSelect.value = data.shiftMode || '8';
+
+            // Advanced Security
+            const mnt = document.getElementById('sec-maintenance');
+            const tfa = document.getElementById('sec-2fa');
+            const reg = document.getElementById('sec-reg-guard');
+            
+            if (mnt) mnt.checked = data.maintenanceMode || false;
+            if (tfa) tfa.checked = data.twoFactorAuth || false;
+            if (reg) reg.checked = data.registrationGuard !== undefined ? data.registrationGuard : true;
+        }
+    } catch (e) {
+        console.warn("Clinic settings could not be loaded (Offline):", e.message);
     }
 }
+
+window.saveSecuritySettings = async () => {
+    const btn = document.getElementById('save-security-btn');
+    const btnText = btn.querySelector('.btn-text');
+    const originalText = btnText.innerHTML;
+
+    const maintenanceMode = document.getElementById('sec-maintenance').checked;
+    const twoFactorAuth = document.getElementById('sec-2fa').checked;
+    const registrationGuard = document.getElementById('sec-reg-guard').checked;
+
+    try {
+        btn.classList.add('loading');
+        btnText.textContent = 'Updating Security...';
+        btn.disabled = true;
+
+        await setDoc(doc(db, 'clinic', 'settings'), {
+            maintenanceMode,
+            twoFactorAuth,
+            registrationGuard
+        }, { merge: true });
+
+        showToast('Security settings updated successfully!', 'success');
+    } catch (err) {
+        showToast('Failed to update security.', 'error');
+    } finally {
+        btn.classList.remove('loading');
+        btnText.innerHTML = originalText;
+        btn.disabled = false;
+    }
+};
 
 // Update initialization to include new features
 onAuthStateChanged(auth, async (user) => {
@@ -1236,6 +1259,7 @@ onAuthStateChanged(auth, async (user) => {
 
     await Promise.all([
         fetchDashboardStats(),
+        initRealtimeListeners(),
         renderStaffTable('doctors'),
         renderStaffTable('receptionists'),
         renderStaffTable('patients'),

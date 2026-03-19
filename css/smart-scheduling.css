@@ -1,0 +1,693 @@
+/* ============================================
+   Smart Scheduling — Theme-Consistent Styles
+   Uses existing CSS variables from style.css
+   ============================================ */
+
+.scheduling-dashboard {
+    padding: 2rem;
+}
+
+/* Header */
+.scheduling-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.scheduling-header h2 {
+    color: var(--text-main);
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.scheduling-metrics-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 1.25rem !important;
+    margin-bottom: 2rem !important;
+    width: 100% !important;
+}
+
+@media (max-width: 992px) {
+    .scheduling-metrics-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 1rem !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .scheduling-metrics-grid {
+        grid-template-columns: repeat(2, 1fr) !important; /* 2 columns even on mobile */
+        gap: 0.6rem !important;
+    }
+    
+    .scheduling-metrics-grid .metric-card {
+        padding: 0.8rem !important;
+        min-height: auto !important;
+    }
+    
+    .scheduling-metrics-grid .metric-value {
+        font-size: 1.1rem !important;
+    }
+    
+    .scheduling-metrics-grid .metric-title {
+        font-size: 0.7rem !important;
+    }
+    
+    .scheduling-metrics-grid .metric-icon {
+        width: 28px !important;
+        height: 28px !important;
+    }
+    
+    .scheduling-metrics-grid .metric-icon i,
+    .scheduling-metrics-grid .metric-icon svg {
+        width: 14px !important;
+        height: 14px !important;
+    }
+}
+
+.metric-card {
+    background: var(--surface);
+    padding: 1.5rem;
+    border-radius: var(--radius-lg);
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Synced with overview */
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    min-height: 122px; /* Synced with overview */
+    gap: 0.5rem;
+}
+
+.metric-card:hover {
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1) !important; /* Synced with overview refined hover */
+    border-color: #e2e8f0 !important;
+}
+
+.metric-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.metric-title {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.metric-icon {
+    width: 40px; /* Synced with overview */
+    height: 40px; /* Synced with overview */
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: var(--radius-md); /* Synced with overview */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.metric-icon.success { background-color: var(--success-bg); color: var(--success); }
+.metric-icon.warning { background-color: #FEF3C7; color: #D97706; }
+
+.metric-icon i, .metric-icon svg {
+    width: 20px !important; /* Synced with overview */
+    height: 20px !important;
+}
+
+.metric-value {
+    font-size: 2rem; /* Synced with overview */
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1; /* Synced with overview */
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Content Grid */
+.scheduling-content {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+}
+
+.doctor-scheduling-panel,
+.shift-orchestration-panel {
+    background: var(--surface);
+    border: 1px solid #e2e8f0 !important;
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: var(--transition);
+    min-width: 0 !important; /* Safety reset */
+    overflow-x: hidden !important; /* Prevent child breakout */
+    width: 100% !important;
+}
+
+.doctor-scheduling-panel:hover,
+.shift-orchestration-panel:hover {
+    box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.15) !important; /* Ultra-Subtle BOTTOM ONLY shadow */
+    border-color: #e2e8f0 !important;
+}
+
+.doctor-scheduling-panel h3,
+.shift-orchestration-panel h3 {
+    color: var(--text-main);
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Doctor Selector */
+.doctor-selector {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+    align-items: center;
+}
+
+.doctor-selector select,
+.form-select {
+    flex: 1;
+    padding: 0.65rem 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    background: var(--input-bg);
+    color: var(--text-main);
+    font-size: 0.875rem;
+    font-family: var(--font-sans);
+    transition: var(--transition);
+    outline: none;
+}
+
+.doctor-selector select:focus,
+.form-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.08);
+}
+
+/* Weekly Schedule */
+.weekly-schedule {
+    display: flex !important;
+    flex-wrap: wrap !important; /* Enable wrapping by default for safety */
+    gap: 1rem;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+.schedule-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 300px; /* Ensures columns wrap when they hit this width on desktop */
+}
+
+.day-schedule {
+    background: var(--surface) !important;
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    border: 1px solid #e2e8f0 !important;
+    transition: var(--transition);
+    min-width: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+}
+
+.day-schedule .btn-outline {
+    margin: 0rem 0 0 !important; /* Left-aligned on desktop */
+    display: inline-flex !important;
+    width: fit-content !important;
+    justify-content: center;
+    align-self: flex-start !important; /* Top-left alignment for desktop */
+    gap: 0.5rem;
+    padding: 0.5rem 1rem !important;
+    font-size: 0.85rem !important;
+    border-radius: var(--radius-md) !important;
+}
+
+.day-schedule:hover {
+    box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.15) !important; /* Ultra-Subtle BOTTOM ONLY shadow */
+    border-color: #e2e8f0 !important;
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.day-header h4 {
+    color: var(--text-main);
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.day-energy-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+/* Energy / Status Dots */
+.btn-loader {
+    display: none;
+    width: 1rem;
+    height: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-left: 0.5rem;
+}
+.energy-dot, .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: pip-pulse 2s infinite;
+    display: inline-block;
+}
+
+.energy-dot.high, .status-dot.active    { background: var(--success); box-shadow: 0 0 0 3px rgba(16,185,129,0.15); }
+.energy-dot.medium                       { background: var(--warning); box-shadow: 0 0 0 3px rgba(245,158,11,0.15); }
+.energy-dot.low,  .status-dot.inactive  { background: var(--danger);  box-shadow: 0 0 0 3px rgba(239,68,68,0.15); }
+.energy-dot.none                         { background: var(--text-muted); }
+
+@keyframes pip-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.6; transform: scale(0.85); }
+}
+
+/* Time Slots */
+.day-slots {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.time-slot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.time-slot .btn-danger {
+    width: 28px !important;
+    height: 28px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    border: none !important;
+    background-color: var(--danger) !important; /* Solid red restored */
+    color: white !important; /* White icon on red */
+    border-radius: var(--radius-sm) !important;
+    flex-shrink: 0 !important;
+    transition: transform 0.2s;
+}
+
+.time-slot .btn-danger:hover {
+    transform: scale(1.05);
+    background-color: #dc2626 !important; /* Slightly darker red on hover */
+}
+
+.time-slot .btn-danger i, 
+.time-slot .btn-danger svg {
+    width: 14px !important; /* Balanced small size for desktop */
+    height: 14px !important;
+}
+
+
+.time-slot::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(37,99,235,0.06), transparent);
+    transition: left 0.5s ease;
+}
+
+.time-slot:hover {
+    border-color: #e2e8f0 !important; /* Neutral border matched to admin system */
+    box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.15) !important; /* Unified bottom shadow */
+}
+/* Removed expensive ::before animation that caused hover lag */
+
+.slot-time {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex: 1;
+    min-width: 0; /* Ensures it can shrink if container is tight */
+}
+
+.time-input {
+    padding: 0.4rem 0.625rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.85rem;
+    font-family: var(--font-sans);
+    background: var(--input-bg);
+    color: var(--text-main);
+    transition: var(--transition);
+    min-width: 85px; /* Enough for HH:MM AM/PM or 24h format */
+    width: 100%;
+}
+
+.time-input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37,99,235,0.1);
+}
+
+/* Schedule Actions */
+.schedule-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap; 
+    width: 100%;
+}
+
+.schedule-actions .btn {
+    flex: 1; /* Make buttons expand on mobile */
+    min-width: fit-content;
+    padding: 0.4rem 0.6rem; /* Match time-input padding for exact same height */
+    font-size: 0.85rem;     /* Match time-input font-size */
+}
+
+/* Shift Containers */
+.scheduling-dashboard {
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-lg);
+    border: 1px solid var(--border);
+    width: 100% !important;
+    max-width: none !important;
+}
+.shift-container {
+    background: var(--background);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+    border: 1px solid #e2e8f0 !important;
+    transition: var(--transition);
+}
+
+.shift-container:hover {
+    box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.15) !important; /* Ultra-Subtle BOTTOM ONLY shadow */
+    border-color: #e2e8f0 !important;
+}
+
+.shift-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.shift-header h3 {
+    color: var(--text-main);
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.shift-time {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.shift-status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.shift-receptionists {
+    margin-bottom: 0.75rem;
+    min-height: 48px;
+    background: var(--surface);
+    border-radius: var(--radius-md);
+    padding: 0.625rem;
+    border: 1px dashed var(--border);
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.shift-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Live Badge */
+.live-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.75rem;
+    background: var(--success-bg);
+    color: #065f46;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    animation: breathe 2.5s ease-in-out infinite;
+}
+
+@keyframes breathe {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.75; }
+}
+
+/* Responsive Design Adjustments — Stack Earlier (1250px) to prevent overflow */
+@media (max-width: 1250px) {
+    .scheduling-content { 
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem;
+    }
+    
+    .scheduling-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+        padding-bottom: 1.5rem;
+    }
+
+    .scheduling-stats {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem; /* Tighter gap for better fit */
+    }
+
+    .metric-card {
+        padding: 0.875rem !important; /* Even smaller padding for tight mobile view */
+        min-height: 90px !important; /* Compact height */
+        justify-content: center;
+    }
+
+    .metric-value {
+        font-size: 1.25rem !important; /* Smaller value to prevent overflow */
+    }
+
+    .metric-header {
+        margin-bottom: 0.25rem !important;
+    }
+
+    .metric-icon {
+        width: 28px !important; /* Extra small icon for mobile cards */
+        height: 28px !important;
+        border-radius: 6px !important;
+    }
+
+    .metric-icon i, .metric-icon svg {
+        width: 14px !important;
+        height: 14px !important;
+    }
+    
+    .shift-orchestration-panel {
+        margin-top: 1rem;
+    }
+
+    /* Wrap columns on smaller desktop/tablet width */
+    .weekly-schedule {
+        flex-wrap: wrap !important;
+    }
+    .schedule-column {
+        min-width: 280px !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .scheduling-dashboard { 
+        padding: 0.75rem; /* Reduced from 1rem to prevent overflow */
+    }
+    
+    .scheduling-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card {
+        min-width: 0;
+        padding: 0.875rem;
+    }
+
+    .day-header {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 0.2rem !important;
+    }
+
+    .weekly-schedule {
+        gap: 0.5rem;
+    }
+
+    .schedule-column {
+        gap: 0.5rem;
+        min-width: 0 !important; /* Force reset for mobile */
+    }
+
+    .weekly-schedule {
+        flex-wrap: nowrap !important; /* Ensure 2 columns stay side-by-side */
+    }
+
+    .day-schedule {
+        padding: 0.6rem;
+    }
+
+/* Responsive grid handled above */
+
+    .time-slot i {
+        width: 12px !important; /* Smaller icon as requested */
+        height: 12px !important;
+    }
+
+    /* Back to Column Stack: Vertical flow as requested */
+    .time-slot {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: stretch !important;
+        padding: 0.875rem !important;
+        gap: 0.75rem !important;
+        position: relative !important;
+    }
+
+    .time-slot .btn-danger {
+        position: static !important;
+        width: 100% !important; /* Full width row in the column stack */
+        height: 32px !important; /* Fixed height for clean row */
+        padding: 0 !important;
+        border-radius: var(--radius-sm) !important;
+        display: flex !important;
+        align-items: center;
+        justify-content: center;
+        margin: 0.25rem 0 0 !important;
+        background-color: var(--danger) !important;
+        color: white !important;
+        border: none !important;
+    }
+
+    .time-slot .btn-danger i,
+    .time-slot .btn-danger svg {
+        width: 14px !important; /* Restored to a balanced, readable size */
+        height: 14px !important;
+    }
+
+    .day-schedule .btn-outline {
+        margin: 0.1rem auto 0 !important; /* Centered on mobile */
+        align-self: center !important;
+        display: inline-flex !important;
+    }
+
+    .slot-time {
+        flex-direction: column !important;
+        gap: 0.4rem !important;
+        width: 100%;
+    }
+
+    .time-input {
+        width: 100% !important;
+        padding: 0.35rem !important;
+        font-size: 0.8rem !important;
+    }
+
+    .slot-time span {
+        display: none; /* Hide 'to' to save space */
+    }
+
+    .doctor-selector {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.5rem;
+    }
+
+    .doctor-selector .btn {
+        width: 100%;
+    }
+
+    .schedule-actions {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .schedule-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .shift-header { 
+        flex-direction: column; 
+        align-items: flex-start; 
+        gap: 0.25rem; 
+    }
+    
+    .shift-actions { 
+        flex-direction: column; 
+        gap: 0.5rem;
+    }
+    
+    .shift-actions .btn { 
+        width: 100%; 
+        justify-content: center; 
+    }
+}

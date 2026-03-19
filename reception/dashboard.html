@@ -15,6 +15,9 @@
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/id-card.css">
     <link rel="stylesheet" href="../css/profile.css">
+    <link rel="stylesheet" href="../css/command-center.css">
+    <link rel="stylesheet" href="../css/notifications.css">
+    <link rel="stylesheet" href="../css/visual-excellence.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -56,6 +59,10 @@
             <div class="nav-item" data-target="doctors-list-section" data-title="Doctor Directory">
                 <i data-lucide="stethoscope"></i>
                 <span>Doctor Directory</span>
+            </div>
+            <div class="nav-item" data-target="command-center-section" data-title="Command Center">
+                <i data-lucide="activity"></i>
+                <span>Command Center</span>
             </div>
             <div class="nav-item" data-target="profile-section" data-title="My Profile">
                 <i data-lucide="user-circle"></i>
@@ -99,35 +106,35 @@
             <!-- OVERVIEW SECTION -->
             <section id="overview-section" class="content-section active">
                 <div class="metrics-grid">
-                    <div class="metric-card">
+                    <div class="metric-card" id="metric-registrations-card">
                         <div class="metric-header">
                             <span class="metric-title">Today's Registrations</span>
                             <div class="metric-icon success"><i data-lucide="user-plus"></i></div>
                         </div>
                         <div class="metric-value" id="stats-new-patients">0</div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" id="metric-queue-card">
                         <div class="metric-header">
                             <span class="metric-title">Today's Queue</span>
                             <div class="metric-icon warning"><i data-lucide="list-ordered"></i></div>
                         </div>
                         <div class="metric-value" id="stats-queue">0</div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" id="metric-upcoming-card">
                         <div class="metric-header">
                             <span class="metric-title">Upcoming</span>
                             <div class="metric-icon" style="background:#EFF6FF;color:#2563EB"><i data-lucide="calendar-clock"></i></div>
                         </div>
                         <div class="metric-value" id="stats-upcoming">0</div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" id="metric-completed-card">
                         <div class="metric-header">
                             <span class="metric-title">Completed</span>
                             <div class="metric-icon success"><i data-lucide="check-circle-2"></i></div>
                         </div>
                         <div class="metric-value" id="stats-completed">0</div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" id="metric-shift-card">
                         <div class="metric-header">
                             <span class="metric-title">Current Shift</span>
                             <div class="metric-icon primary"><i data-lucide="clock"></i></div>
@@ -397,6 +404,11 @@
                 </div>
             </section>
 
+            <!-- COMMAND CENTER SECTION -->
+            <section id="command-center-section" class="content-section">
+                <!-- Command Center content will be rendered by JavaScript -->
+            </section>
+
             <!-- PROFILE SECTION -->
             <section id="profile-section" class="content-section">
                 <div class="profile-container">
@@ -479,6 +491,9 @@
 
     <!-- Scripts -->
     <script type="module" src="./js/reception.js"></script>
+    <script type="module" src="./js/command-center.js"></script>
+    <script src="../js/notification-system.js"></script>
+    <script src="../js/visual-excellence.js"></script>
     <script>
         if (window.lucide) lucide.createIcons();
         window.openSidebar = () => {

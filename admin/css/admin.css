@@ -1,341 +1,978 @@
-/* Admin Dashboard — Healthcare Modern palette */
-@import url('../../css/base-dashboard.css');
+/* ==========================================================================
+   Admin Dashboard — Scoped Overrides
+   These styles ONLY affect specific components like the Add Staff Modal
+   to ensure the global branding (CareSync) remains untouched.
+   ========================================================================== */
 
-/* Healthcare Modern: Indigo + Teal */
-:root {
-    --primary: #4f46e5;
-    --primary-hover: #4338ca;
-    --primary-light: #eef2ff;
-    --accent: #14b8a6;
-    --background: #f9fafb;
-    --border: #e5e7eb;
-    --text-muted: #6b7280;
-    --shadow-glow: 0 4px 12px 0 rgba(79, 70, 229, 0.12);
-}
-
-/* Admin: No card translate animations, only subtle shadow on hover */
-.metric-card {
-    animation: none !important;
-}
-
-.metric-card:hover {
-    transform: none !important;
-    box-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.06);
-}
-
-/* Admin: Avatars - circular with visible border */
-.user-avatar-sm {
-    border-radius: 50% !important;
-    overflow: hidden;
-    border: 2px solid #d1d5db;
-}
-
-.user-avatar-sm img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-/* Topbar profile avatar - visible border */
-.topbar .avatar {
-    border: 2px solid #d1d5db;
-}
-
-.topbar .avatar img {
-    border-radius: 50%;
-}
-
-/* Profile dropdown - clean UI, small icon, smooth hover */
-.profile-dropdown-wrapper {
-    position: relative;
-}
-
-.profile-dropdown-menu {
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    min-width: 160px;
-    z-index: 200;
-    padding: 0.375rem;
-    display: none;
-}
-
-.profile-dropdown-menu.open {
-    display: block;
-}
-
-.profile-dropdown-item {
+/* ── Add Staff Modal: Forced Compact & 2-Column Grid ── */
+#add-staff-modal .modal-overlay {
     display: flex;
     align-items: center;
-    gap: 0.625rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 0.8125rem;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.4); /* Subtle overlay using original secondary */
+    backdrop-filter: blur(4px);
+}
+
+#add-staff-modal .modal-content {
+    max-width: 600px;
+    width: 95%;
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
+#add-staff-modal .modal-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#add-staff-modal .modal-header h3 {
+    font-size: 1.125rem;
+    font-weight: 700;
     color: var(--text-main);
-    transition: background 0.2s ease;
-    width: 100%;
-    border: none;
-    background: none;
-    text-align: left;
 }
 
-.profile-dropdown-item:hover {
+#add-staff-modal .modal-body {
+    padding: 1.25rem 1.5rem;
+    overflow-y: auto;
+    scrollbar-width: thin;
+}
+
+#add-staff-modal .modal-footer {
+    padding: 0.75rem 1.5rem;
+    border-top: 1px solid var(--border);
     background: var(--background);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
 }
 
-.profile-dropdown-item i {
+#add-staff-modal .modal-footer .btn {
+    padding: 0.4rem 1.25rem !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 0.85rem !important;
+    width: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.6rem !important;
+}
+
+#add-staff-modal .modal-footer .btn i,
+#add-staff-modal .modal-footer .btn svg {
+    width: 16px !important;
+    height: 16px !important;
+}
+
+/* --- High Density Form Controls --- */
+#add-staff-modal .form-row-2 {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 1.25rem 1rem !important;
+    margin-bottom: 1rem !important;
+}
+
+#add-staff-modal .form-group {
+    margin-bottom: 0 !important;
+}
+
+#add-staff-modal .form-label {
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.35rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.5rem !important;
+}
+
+#add-staff-modal .form-label i {
     width: 14px;
     height: 14px;
-    color: var(--text-muted);
-    flex-shrink: 0;
-}
-
-/* Photo upload modal */
-.photo-upload-modal .modal-body {
-    text-align: center;
-    padding: 2rem 1.5rem;
-}
-
-.photo-preview-wrap {
-    width: 120px;
-    height: 120px;
-    margin: 0 auto 1.5rem;
-    border-radius: 50%;
-    overflow: hidden;
-    background: var(--background);
-    border: 2px solid var(--border);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.photo-preview-wrap.has-image {
-    border-color: var(--primary);
-}
-
-.photo-preview-wrap img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.photo-preview-placeholder {
-    color: var(--text-muted);
-    font-size: 0.8rem;
-    padding: 1rem;
-}
-
-.photo-upload-actions {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    align-items: center;
-}
-
-/* ── Status Pill Button ────────────────────────────── */
-.status-pill-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 0.78rem;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-}
-
-.status-pill-btn.active {
-    background: #DCFCE7;
-    color: #166534;
-}
-
-.status-pill-btn.inactive {
-    background: #F1F5F9;
-    color: #64748B;
-}
-
-.status-pill-btn:hover {
-    opacity: 0.82;
-}
-
-.status-pill-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-}
-
-.status-pill-btn.active .status-pill-dot {
-    background: #22C55E;
-}
-
-.status-pill-btn.inactive .status-pill-dot {
-    background: #94A3B8;
-}
-
-/* ── Staff Profile Card (Mobile) ──────────────────── */
-.staff-card-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    padding-top: 0.5rem;
-}
-
-.staff-profile-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1rem 1.25rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.875rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.staff-profile-card.card-inactive {
-    opacity: 0.72;
-    background: #F8FAFC;
-}
-
-.spc-top {
-    display: flex;
-    align-items: center;
-    gap: 0.875rem;
-}
-
-.spc-avatar-wrap {
-    position: relative;
-    flex-shrink: 0;
-}
-
-.spc-avatar {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    font-size: 1.25rem;
-    font-weight: 700;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-
-.spc-role-badge {
-    position: absolute;
-    bottom: -2px;
-    right: -4px;
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    background: var(--primary);
-    color: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid var(--surface);
-}
-
-.spc-role-badge i,
-.spc-role-badge svg.lucide {
-    width: 11px !important;
-    height: 11px !important;
-}
-
-.spc-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.spc-name {
-    font-size: 0.9375rem;
-    font-weight: 700;
-    color: var(--text-main);
-    margin: 0 0 2px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.spc-email {
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    margin: 0 0 1px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.spc-joined {
-    font-size: 0.75rem;
-    color: var(--text-muted);
-    margin: 0;
-}
-
-.spc-actions {
-    display: flex;
-    gap: 0.5rem;
-}
-
-.spc-btn {
-    flex: 1;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    padding: 7px 14px;
-    border-radius: 10px;
-    font-size: 0.8125rem;
-    font-weight: 600;
-    border: none;
-    cursor: pointer;
-    transition: opacity 0.2s ease;
-}
-
-.spc-btn.primary {
-    background: var(--primary-light);
     color: var(--primary);
 }
 
-.spc-btn.danger {
-    background: #FEE2E2;
-    color: #DC2626;
+#add-staff-modal .form-input,
+#add-staff-modal .form-select,
+#add-staff-modal select {
+    padding: 0 0.875rem !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    font-size: 0.875rem !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-md) !important;
+    background: var(--input-bg) !important;
+    color: var(--text-main) !important;
+    width: 100% !important;
 }
 
-.spc-btn:hover {
-    opacity: 0.82;
+/* Ensure select has a functional arrow icon */
+#add-staff-modal select {
+    appearance: auto !important; /* Restore native arrow for reliability */
+    padding-right: 0.5rem !important;
 }
 
-.spc-btn i,
-.spc-btn svg.lucide {
-    width: 14px !important;
-    height: 14px !important;
+#add-staff-modal .form-input:focus {
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1) !important;
+    outline: none !important;
 }
 
-/* Admin: Table actions - Delete first */
-.admin-table-row .table-actions-cell {
-    display: flex;
+#add-staff-modal .form-hint {
+    display: none;
+}
+
+/* --- Professional Table Search Input --- */
+.table-search-input {
+    background: transparent !important;
+    border: none !important;
+    padding: 0.45rem 0.75rem !important;
+    font-size: 0.825rem !important;
+    color: var(--text-main) !important;
+    width: 100% !important;
+    outline: none !important;
+}
+
+.table-search-input::placeholder {
+    color: var(--text-muted) !important;
+    font-size: 0.825rem !important;
+}
+
+/* --- Unified Professional Button Loader --- */
+.btn-loader {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: btn-spin 0.6s linear infinite;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+@keyframes btn-spin {
+    to { transform: rotate(360deg); }
+}
+
+.btn:not(.loading) .btn-loader {
+    display: none;
+}
+
+.btn.loading .btn-text,
+.btn.loading i,
+.btn.loading svg {
+    display: none !important;
+}
+
+.btn.loading {
+    pointer-events: none;
+    cursor: default;
+}
+
+.btn-text {
+    display: inline-flex;
+    align-items: center;
     gap: 0.5rem;
-    justify-content: flex-start;
 }
 
-/* Response Fix for Circular Charts and Mobile padding */
+/* --- Profile Photo Specialized Loader --- */
+.btn-edit-avatar.loading-photo {
+    pointer-events: none;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-edit-avatar.loading-photo::after {
+    content: "";
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #fff;
+    animation: btn-spin 0.6s linear infinite;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -7px; /* Half of height */
+    margin-left: -7px; /* Half of width */
+    z-index: 10;
+}
+
+.btn-edit-avatar.loading-photo i {
+    visibility: hidden;
+}
+
+/* --- Modern Toggle Switches (v2) --- */
+.switch-v2 {
+    position: relative;
+    display: inline-block;
+    width: 38px;
+    height: 20px;
+}
+
+.switch-v2 input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider-v2 {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #E2E8F0;
+    transition: .3s;
+    border-radius: 20px;
+}
+
+.slider-v2:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+input:checked + .slider-v2 {
+    background-color: var(--success);
+}
+
+input:checked + .slider-v2:before {
+    transform: translateX(18px);
+}
+
+/* Skeleton basic classes removed - managed globally in theme-pro.css */
+/* --- Diagnosis List (Actual Data Styles) --- */
+.diagnosis-analytics-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.diagnosis-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 15px;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.2s ease;
+}
+
+.diagnosis-item:hover {
+    background: #f8fafc;
+}
+
+.diag-rank {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    width: 20px;
+}
+
+.diag-name {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.diag-count {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* --- User Info Cell (Avatar + Details stacked) --- */
+.user-info-cell {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.3;
+}
+
+.user-name-text {
+    font-weight: 600;
+    color: var(--text-main);
+    font-size: 0.95rem;
+}
+
+.user-email-subtext {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+/* --- Chart & Metric Skeletons --- */
+
+/* Shimmer Global Definition is at Line 261 */
+
+/* --- Premium Table Refinements --- */
+.admin-table-row {
+    transition: all 0.2s ease;
+}
+
+.admin-table-row:hover {
+    background-color: #f1f5f9 !important;
+}
+
+/* --- Unified Status & Health Badges (Production Premium) --- */
+.status-indicator-pill,
+.health-badge,
+.status-toggle-wrapper {
+    padding: 0.35rem 0.85rem;
+    border-radius: 50px;
+    font-size: 0.725rem;
+    font-weight: 700;
+    line-height: 1.2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    position: relative;
+    border: 1px solid transparent;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Status Dot (Refined with Glow) */
+.status-dot-indicator {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    display: inline-block;
+    box-shadow: 0 0 8px currentColor;
+}
+
+/* Status: Active (Emerald Gradient) */
+.status-indicator-pill.active,
+.health-badge.stable {
+    background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+    color: #059669;
+    border-color: rgba(16, 185, 129, 0.2);
+}
+
+.status-indicator-pill.active .status-dot-indicator,
+.health-badge.stable .status-dot-indicator {
+    animation: status-pulse-glow 2s infinite;
+}
+
+@keyframes status-pulse-glow {
+    0% { transform: scale(0.9); opacity: 0.7; filter: blur(0px); }
+    50% { transform: scale(1.2); opacity: 1; filter: blur(1px); }
+    100% { transform: scale(0.9); opacity: 0.7; filter: blur(0px); }
+}
+
+/* Status: Inactive (Slate Gradient) */
+.status-indicator-pill.inactive {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    color: #64748b;
+    border-color: #e2e8f0;
+}
+
+/* Status: Critical (Rose Gradient) */
+.health-badge.critical {
+    background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+    color: #e11d48;
+    border-color: rgba(244, 63, 94, 0.2);
+}
+
+/* Status: Pending/Monitoring (Amber Gradient) */
+.status-indicator-pill.pending,
+.status-indicator-pill.scheduled,
+.health-badge.monitoring {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    color: #d97706;
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+/* Status: Normal/Cancelled (Blue Gradient) */
+.health-badge.normal,
+.status-indicator-pill.cancelled {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #2563eb;
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+/* --- Responsive Overview Skeletons --- */
+.skeleton-metric-val {
+    height: 24px;
+    width: 60%;
+    max-width: 100px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.skeleton-metric-trend {
+    height: 14px;
+    width: 80%;
+    max-width: 140px;
+    border-radius: 4px;
+}
+
 @media (max-width: 768px) {
-    .chart-body {
-        height: 200px !important;
+    .skeleton-metric-val { width: 70%; }
+    .skeleton-metric-trend { width: 90%; }
+}
+
+/* --- Unified & Responsive Overview Skeletons --- */
+.chart-skeleton-bars {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    height: 280px; 
+    padding: 30px 20px;
+    width: 100%;
+    gap: 12px;
+    box-sizing: border-box;
+}
+
+.donut-skeleton-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 280px;
+    gap: 20px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.skeleton-ring {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    border: 20px solid #e2e8f0;
+    flex-shrink: 0;
+    margin: 0 auto;
+}
+
+.donut-legend-row {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.diagnosis-skeleton-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f1f5f9;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+@media (max-width: 768px) {
+    .chart-skeleton-bars,
+    .donut-skeleton-container {
+        height: 240px;
+        padding: 15px;
+    }
+    
+    .skeleton-ring {
+        width: 110px;
+        height: 110px;
+        border-width: 15px;
+    }
+    
+    .diagnosis-skeleton-row {
+        gap: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    .chart-skeleton-bars,
+    .donut-skeleton-container {
+        height: 200px;
+        padding: 10px;
+        gap: 15px;
+    }
+
+    .skeleton-ring {
+        width: 80px;
+        height: 80px;
+        border-width: 12px;
+    }
+
+    .diagnosis-skeleton-row {
+        gap: 8px;
+    }
+    
+    .chart-skeleton-bars {
+        gap: 8px;
+    }
+}
+
+/* Hover Effect */
+.status-indicator-pill:hover,
+.health-badge:hover {
+    filter: brightness(0.98);
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08); /* standard bottom shadow */
+}
+
+/* Already defined globally in this file */
+
+/* Compact versions for Table toggle */
+.status-toggle-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.6rem;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.status-toggle-wrapper:hover {
+    border-color: var(--primary);
+    background: #fff;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+}
+
+.status-text-compact {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.table-cell-muted {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+/* Pagination Controls */
+.pagination-btn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.pagination-btn:hover:not(:disabled) {
+    border-color: var(--primary);
+    color: var(--primary);
+    background: #f0f7ff;
+}
+
+.pagination-btn.active {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+.pagination-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background: #f8fafc;
+}
+
+.pagination-info {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+.empty-state {
+    text-align: center;
+    padding: 3rem !important;
+    color: var(--text-muted);
+    font-style: italic;
+    background: #fbfcfd;
+}
+
+/* --- Scoped Global Button Fixes for Admin --- */
+.btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.5rem !important;
+    transition: all 0.2s ease !important;
+    font-weight: 600 !important;
+}
+
+.btn i, .btn svg {
+    width: 18px !important;
+    height: 18px !important;
+    flex-shrink: 0;
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem !important;
+    font-size: 0.85rem !important;
+}
+
+@keyframes btn-spin {
+    to { transform: rotate(360deg); }
+}
+
+.icon-btn-subtle {
+    width: 32px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.icon-btn-subtle:hover {
+    background: #f1f5f9;
+    color: var(--primary);
+}
+
+.icon-btn-subtle i, .icon-btn-subtle svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* --- Search & Filter Refinements --- */
+.search-box-wrapper {
+    transition: all 0.25s ease !important;
+}
+
+.search-box-wrapper:hover {
+    border-color: #CBD5E1 !important;
+    background: #F1F5F9 !important;
+}
+
+/* Specific Layouts for Appointment Section to match Staff Pattern */
+.appt-search-box {
+    max-width: 400px;
+    flex: 2;
+    min-width: 240px;
+}
+
+.appt-filter-box {
+    max-width: 200px;
+    flex: 1;
+    min-width: 150px;
+}
+
+.search-box-wrapper:focus-within {
+    border-color: var(--primary) !important;
+    background: #fff !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08) !important;
+}
+
+.search-input {
+    cursor: pointer;
+}
+
+@media (max-width: 500px) {
+    #add-staff-modal .form-row-2 {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem !important;
+    }
+}
+
+/* --- Premium Staff & Appointment Cards (Mobile) --- */
+.staff-card.v-excellence {
+    background: #ffffff;
+    border: 1px solid #e2e8f0 !important; /* Forced gray border */
+    border-radius: 16px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Light normal shadow */
+    transition: box-shadow 0.25s ease !important;
+}
+
+/* Refined Hover State for Admin Cards and Containers (SPECIFIC SELECTORS ONLY) */
+.metric-card,
+.chart-card,
+.table-container,
+.plan-card,
+.staff-card,
+.upgrade-banner,
+.info-mini-card,
+.profile-card-v2,
+.profile-card,
+.dashboard-card,
+.stat-card {
+    border: 1px solid #e2e8f0 !important;
+    background: #ffffff !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    transition: box-shadow 0.25s ease !important;
+    transform: none !important;
+    border-bottom-width: 1px !important;
+}
+
+/* Specific background for Sidebar items */
+.sidebar-nav .nav-item {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.metric-card:hover,
+.chart-card:hover,
+.table-container:hover,
+.plan-card:hover,
+.staff-card:hover,
+.upgrade-banner:hover,
+.info-mini-card:hover,
+.profile-card-v2:hover,
+.profile-card:hover,
+.dashboard-card:hover,
+.stat-card:hover {
+    box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.15) !important; /* Ultra-Subtle BOTTOM ONLY shadow */
+    border-color: #e2e8f0 !important;
+    transform: none !important;
+}
+
+/* Ensure parents like grids don't have backgrounds/borders */
+.metrics-grid, .charts-grid, .staff-card-grid, .plans-grid {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Targeted Reset for Translate Animations on Hover */
+.metric-card:hover, 
+.chart-card:hover, 
+.table-container:hover, 
+.staff-card:hover, 
+.plan-card:hover, 
+.btn:hover, 
+.nav-item:hover,
+.info-mini-card:hover,
+.profile-card-v2:hover {
+    transform: none !important;
+}
+
+/* Ensure no colorful gradient bars or fixed colorful borders stay anywhere */
+[class*="card"]::before, [class*="card"]::after,
+[class*="container"]::before, [class*="container"]::after,
+.metric-card::before, .metric-card::after,
+.chart-card::before, .chart-card::after,
+.upgrade-banner::before, .upgrade-banner::after {
+    display: none !important;
+    content: none !important;
+}
+
+.staff-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.staff-header-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.staff-title-box {
+    display: flex;
+    flex-direction: column;
+}
+
+.staff-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.staff-role-tag {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.staff-card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem 0;
+    border-top: 1px solid #f1f5f9;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.staff-detail-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.825rem;
+    color: var(--text-secondary);
+}
+
+.staff-detail-row i, 
+.staff-detail-row svg {
+    width: 14px;
+    height: 14px;
+    color: var(--primary);
+}
+
+.staff-card-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.staff-card-footer .btn {
+    width: 100%;
+}
+
+/* --- Responsive Staff Card Icons (Mobile Adjustments) --- */
+@media (max-width: 768px) {
+    .staff-detail-row i, 
+    .staff-detail-row svg,
+    .staff-card-footer .btn i,
+    .staff-card-footer .btn svg {
+        width: 15px !important;
+        height: 15px !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .staff-detail-row i, 
+    .staff-detail-row svg,
+    .staff-card-footer .btn i,
+    .staff-card-footer .btn svg {
+        width: 14px !important;
+        height: 14px !important;
+    }
+    
+    .avatar-circle {
+        width: 42px !important;
+        height: 42px !important;
+    }
+
+    /* Scale down buttons for small mobile */
+    .staff-card-footer .btn,
+    .skeleton-btn-full {
+        padding: 8px 12px !important;
+        font-size: 0.75rem !important;
+        min-height: 34px !important;
+        height: 34px !important;
+    }
+}
+
+/* Tablet/Mobile Button Refinements */
+@media (max-width: 768px) {
+    .staff-card-footer .btn,
+    .skeleton-btn-full {
+        padding: 10px 16px;
+        font-size: 0.8rem;
+        min-height: 38px;
+        height: 38px;
+    }
+}
+
+.skeleton-btn-full {
+    height: 42px;
+    width: 100%;
+    border-radius: 8px;
+}
+
+.btn-full {
+    width: 100%;
+}
+
+/* Premium Button Colors (Original CareSync Style) */
+.btn-primary {
+    background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%) !important;
+    color: white !important;
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%) !important;
+    color: white !important;
+}
+
+.btn-secondary {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border: 1px solid #e2e8f0 !important;
+}
+
+/* --- Global Dashboard Responsiveness Overrides --- */
+@media (max-width: 1024px) {
+    .charts-grid {
+        grid-template-columns: 1fr !important;
+        gap: 1.5rem;
+    }
+    
+    .metrics-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)) !important;
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
+    
+    .mobile-only {
+        display: grid !important;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.25rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .page-content {
+        padding: 1rem !important;
+    }
+
+    .metrics-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
     }
     
     .chart-card {
         padding: 1.25rem !important;
     }
-    
-    .staff-card-grid {
-        gap: 0.75rem !important;
+}
+
+@media (max-width: 640px) {
+    .mobile-only {
+        grid-template-columns: 1fr !important;
     }
-}
+}
+

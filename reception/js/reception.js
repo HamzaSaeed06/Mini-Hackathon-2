@@ -1,11 +1,11 @@
-import { renderPagination } from '../../js/pagination.js';
+import { renderPagination as renderPaginationUI } from '../../js/pagination.js';
 import { 
-    applyAvatarStyle, 
-    AVATAR_PALETTES,
     getAvatarPalette,
     getAvatarConfig,
-    SKELETON_DELAY,
-    showToast
+    showToast,
+    formatDate,
+    applyAvatarStyle,
+    AVATAR_PALETTES
 } from '../../js/utils.js';
 import {
     doc, getDoc, getDocs, collection, query, where, onSnapshot,
@@ -23,6 +23,25 @@ const navItems = document.querySelectorAll('.nav-item[data-target]');
 const sections = document.querySelectorAll('.content-section');
 const pageTitle = document.getElementById('page-title');
 let userData = null;
+
+
+
+function updateMetricCard(id, title, value, iconClass, subtitle = '') {
+    const container = document.getElementById(id);
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="metric-header">
+            <span class="metric-title">${title}</span>
+            <div class="metric-icon ${iconClass.includes('success') ? 'success' : iconClass.includes('warning') ? 'warning' : 'primary'}">
+                <i data-lucide="${iconClass.split(' ')[0]}"></i>
+            </div>
+        </div>
+        <div class="metric-value">${value}</div>
+        ${subtitle ? `<p class="text-muted" style="font-size: 0.75rem; margin-top: 0.25rem;">${subtitle}</p>` : ''}
+    `;
+    if (window.lucide) lucide.createIcons();
+}
 
 // ── Auth Guard ────────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -224,36 +243,18 @@ navItems.forEach(item => {
             if (sec.id === targetId) {
                 sec.classList.add('active');
                 
-                // Perception Delay on Click
-                if (targetId === 'dashboard-section') {
-                    renderSkeletons('dashboard');
-                    setTimeout(() => renderQueueTab(), SKELETON_DELAY || 600);
+                if (targetId === 'overview-section') {
+                    renderQueueTab();
                 } else if (targetId === 'patients-list-section') {
-                    renderSkeletons('patients');
-                    setTimeout(() => renderPatientPage(), SKELETON_DELAY || 600);
+                    renderPatientPage();
                 } else if (targetId === 'doctors-list-section') {
-                    renderSkeletons('doctors');
-                    setTimeout(() => loadDoctorDirectory(), SKELETON_DELAY);
-                } else {
-                    const contentArea = sec.querySelector('.table-container') || sec.querySelector('.profile-container') || sec;
-                    if (!contentArea.dataset.loader) {
-                        contentArea.dataset.loader = 'true';
-                        const originalOpacity = contentArea.style.opacity;
-                        contentArea.style.opacity = '0.5';
-                        contentArea.style.pointerEvents = 'none';
-                        contentArea.style.position = 'relative';
-                        
-                        const loader = document.createElement('div');
-                        loader.className = 'section-loader-overlay';
-                        loader.innerHTML = `<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:50; color:var(--primary);"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-loader-2 spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></div>`;
-                        contentArea.appendChild(loader);
-
-                        setTimeout(() => {
-                            contentArea.style.opacity = originalOpacity || '1';
-                            contentArea.style.pointerEvents = 'auto';
-                            loader.remove();
-                            delete contentArea.dataset.loader;
-                        }, SKELETON_DELAY || 600);
+                    loadDoctorDirectory();
+                } else if (targetId === 'command-center-section') {
+                    if (!item.dataset.loaded) {
+                        if (window.commandCenter) {
+                            window.commandCenter.renderCommandCenter();
+                        }
+                        item.dataset.loaded = 'true';
                     }
                 }
             }
@@ -283,9 +284,7 @@ function loadStats() {
     const patientsCount = document.getElementById('stats-new-patients');
 
     onSnapshot(query(collection(db, 'users'), where('role', '==', 'patient')), (snap) => {
-        setTimeout(() => {
-            if (patientsCount) patientsCount.textContent = snap.size;
-        }, SKELETON_DELAY);
+        updateMetricCard('metric-registrations-card', "Today's Registrations", snap.size, 'user-plus');
     });
 }
 
@@ -318,23 +317,19 @@ function loadQueue() {
         allAppointments = [];
         snap.forEach(d => allAppointments.push({ id: d.id, ...d.data() }));
 
-        // Fetch live patient photos for all appointments at once
+        // Fetch live patient photos
         await Promise.all(allAppointments.map(async (appt) => {
             if (appt.patientId) {
                 try {
                     const userSnap = await getDoc(doc(db, 'users', appt.patientId));
-                    if (userSnap.exists()) {
-                        appt._livePhotoURL = userSnap.data().photoURL || '';
-                    }
+                    if (userSnap.exists()) appt._livePhotoURL = userSnap.data().photoURL || '';
                 } catch (_) {}
             }
         }));
 
-        setTimeout(() => {
-            updateTabBadges();
-            currentQueuePage = 1;
-            renderQueueTab();
-        }, SKELETON_DELAY);
+        updateTabBadges();
+        currentQueuePage = 1;
+        renderQueueTab();
     });
 }
 
@@ -372,12 +367,9 @@ function updateTabBadges() {
         if (el) el.textContent = counts[tab];
     });
 
-    const statsQueue = document.getElementById('stats-queue');
-    const statsUpcoming = document.getElementById('stats-upcoming');
-    const statsCompleted = document.getElementById('stats-completed');
-    if (statsQueue) statsQueue.textContent = counts.today;
-    if (statsUpcoming) statsUpcoming.textContent = counts.upcoming;
-    if (statsCompleted) statsCompleted.textContent = counts.completed;
+    updateMetricCard('metric-queue-card', "Today's Queue", counts.today, 'list-ordered warning');
+    updateMetricCard('metric-upcoming-card', "Upcoming", counts.upcoming, 'calendar-clock');
+    updateMetricCard('metric-completed-card', "Completed", counts.completed, 'check-circle-2 success');
 }
 
 async function renderQueueTab() {
@@ -429,13 +421,10 @@ async function renderQueueTab() {
         `;
     });
 
-    tableBody.classList.remove('page-transition');
-    void tableBody.offsetWidth;
-    tableBody.classList.add('page-transition');
     tableBody.innerHTML = rows.join('') || `<tr><td colspan="5" class="empty-state">No appointments in this category.</td></tr>`;
 
     if (pagination && totalPages > 1) {
-        renderPagination(pagination, currentQueuePage, totalPages, (newPage) => {
+        renderPaginationUI(pagination, currentQueuePage, totalPages, (newPage) => {
             currentQueuePage = newPage;
             renderQueueTab();
         });
@@ -453,20 +442,24 @@ async function renderQueueTab() {
 async function populateDropdowns() {
     // Load Patients
     onSnapshot(query(collection(db, 'users'), where('role', '==', 'patient')), (snap) => {
-        setTimeout(() => {
-            const patients = [];
-            snap.forEach(d => {
-                const data = d.data();
-                patients.push({
-                    id: d.id,
-                    name: data.name,
-                    sub: data.email,
-                    photoURL: data.photoURL,
-                    extra: { name: data.name, age: data.age || '', gender: data.gender || '', photoURL: data.photoURL || '' }
-                });
+        const patients = [];
+        snap.forEach(d => {
+            const data = d.data();
+            patients.push({
+                id: d.id,
+                name: data.name,
+                sub: data.email,
+                photoURL: data.photoURL,
+                extra: { 
+                    name: data.name, 
+                    email: data.email || '', 
+                    age: data.age || '', 
+                    gender: data.gender || '', 
+                    photoURL: data.photoURL || '' 
+                }
             });
-            initCustomSelect('patient-select-container', 'patient-options-list', 'select-patient', patients);
-        }, SKELETON_DELAY);
+        });
+        initCustomSelect('patient-select-container', 'patient-options-list', 'select-patient', patients);
     });
 
     // Load Doctors (Active only)
@@ -489,54 +482,7 @@ async function populateDropdowns() {
 window.openModal = (id) => document.getElementById(id)?.classList.add('active');
 window.closeModal = (id) => document.getElementById(id)?.classList.remove('active');
 
-function renderSkeletons(type) {
-    let tbodyId, cardGridId;
-    if (type === 'dashboard') {
-        tbodyId = 'queue-table-body';
-        cardGridId = null; // Add if card grid exists for queue
-    } else {
-        tbodyId = `${type}-table-body`;
-        cardGridId = `${type}-card-grid`;
-    }
-    
-    const tbody = document.getElementById(tbodyId);
-    const cardGrid = cardGridId ? document.getElementById(cardGridId) : null;
-    
-    const skeletonRow = `
-        <tr class="skeleton-row">
-            <td><div class="user-info-cell"><div class="skeleton skeleton-avatar"></div><div class="skeleton-text skeleton" style="width:120px;"></div></div></td>
-            <td><div class="skeleton-text skeleton" style="width:150px;"></div></td>
-            <td><div class="skeleton-text skeleton" style="width:100px;"></div></td>
-            <td><div class="skeleton-badge skeleton"></div></td>
-            <td class="table-actions-cell"><div class="skeleton-btn skeleton"></div></td>
-        </tr>
-    `;
-    
-    const skeletonCard = `
-        <div class="compact-staff-card" style="border-color:#F1F5F9;">
-            <div class="card-header-row">
-                <div class="header-left">
-                    <div class="skeleton skeleton-avatar" style="width:40px;height:40px;"></div>
-                    <div>
-                        <div class="skeleton-text skeleton" style="width:100px;height:16px;"></div>
-                        <div class="skeleton-text skeleton" style="width:70px;height:12px;"></div>
-                    </div>
-                </div>
-                <div class="skeleton-badge skeleton"></div>
-            </div>
-            <div class="card-body-section">
-                <div class="skeleton-text skeleton" style="width:60%;"></div>
-            </div>
-            <div class="card-actions-vertical" style="margin-top:0.5rem;">
-                <div class="skeleton skeleton-btn" style="width:100%;height:36px;border-radius:8px;"></div>
-                <div class="skeleton skeleton-btn" style="width:100%;height:36px;border-radius:8px;opacity:0.6;"></div>
-            </div>
-        </div>
-    `;
 
-    if (tbody) tbody.innerHTML = skeletonRow.repeat(4);
-    if (cardGrid) cardGrid.innerHTML = skeletonCard.repeat(3);
-}
 
 // ── Form Handlers ─────────────────────────────────────────────
 
@@ -596,6 +542,7 @@ if (bookForm) {
         const doctorName = doctorEl.options[doctorEl.selectedIndex].dataset.name;
         const doctorPhotoURL = doctorEl.options[doctorEl.selectedIndex].dataset.photoUrl;
         const patientPhotoURL = patientEl.options[patientEl.selectedIndex].dataset.photoUrl;
+        const patientEmail = patientEl.options[patientEl.selectedIndex].dataset.email;
 
         try {
             // Capacity Validation
@@ -617,6 +564,7 @@ if (bookForm) {
             await addDoc(collection(db, 'appointments'), {
                 patientId,
                 patientName,
+                patientEmail: patientEmail || '',
                 patientAge,
                 patientGender,
                 patientPhotoURL: patientPhotoURL || '',
@@ -650,11 +598,9 @@ function loadPatientDirectory() {
     if (!tableBody) return;
 
     onSnapshot(query(collection(db, 'users'), where('role', '==', 'patient')), (snap) => {
-        setTimeout(() => {
-            patientDirectoryCache.length = 0;
-            snap.forEach(d => patientDirectoryCache.push({ id: d.id, ...d.data() }));
-            renderPatientDirectory(patientDirectoryCache);
-        }, SKELETON_DELAY + 200);
+        patientDirectoryCache.length = 0;
+        snap.forEach(d => patientDirectoryCache.push({ id: d.id, ...d.data() }));
+        renderPatientDirectory(patientDirectoryCache);
     });
 }
 
@@ -706,7 +652,7 @@ function renderPatientDirectory(patients) {
     if (pagination) {
         if (totalPages > 1) {
             pagination.style.display = 'flex';
-            renderPagination(pagination, currentDirPage, totalPages, (newPage) => {
+            renderPaginationUI(pagination, currentDirPage, totalPages, (newPage) => {
                 currentDirPage = newPage;
                 const queryVal = document.getElementById('patient-search')?.value.toLowerCase() || '';
                 if (queryVal) {
@@ -738,11 +684,9 @@ function loadDoctorDirectory() {
     if (!tableBody) return;
 
     onSnapshot(query(collection(db, 'users'), where('role', '==', 'doctor')), (snap) => {
-        setTimeout(() => {
-            doctorDirectoryCache.length = 0;
-            snap.forEach(d => doctorDirectoryCache.push({ id: d.id, ...d.data() }));
-            renderDoctorDirectory(doctorDirectoryCache);
-        }, SKELETON_DELAY + 200);
+        doctorDirectoryCache.length = 0;
+        snap.forEach(d => doctorDirectoryCache.push({ id: d.id, ...d.data() }));
+        renderDoctorDirectory(doctorDirectoryCache);
     });
 }
 
@@ -817,7 +761,7 @@ function renderDoctorDirectory(doctors) {
     if (cardGrid) cardGrid.innerHTML = cardsHtml;
 
     if (pagination && totalPages > 1) {
-        renderPagination(pagination, currentDoctorDirPage, totalPages, (newPage) => {
+        renderPaginationUI(pagination, currentDoctorDirPage, totalPages, (newPage) => {
             currentDoctorDirPage = newPage;
             const queryVal = document.getElementById('doctor-dir-search')?.value.toLowerCase() || '';
             if (queryVal) {
@@ -920,7 +864,7 @@ window.showIDCard = async (uid, roleType) => {
                     width: 80, height: 80, colorDark: "#0c4a6e", colorLight: "#ffffff", useSVG: true
                 });
             }
-        }, 100);
+        }, 0);
     } catch (err) {
         console.error(err);
     }
@@ -1037,7 +981,7 @@ window.downloadIDCardDirectly = async (uid, roleType) => {
             });
         }
 
-        await new Promise(r => setTimeout(r, 800));
+        await new Promise(r => setTimeout(r, 100));
 
         const opt = {
             margin: 0,
@@ -1066,8 +1010,6 @@ window.downloadIDCardDirectly = async (uid, roleType) => {
     }
 };
 
-window.openModal = (id) => document.getElementById(id)?.classList.add('active');
-window.closeModal = (id) => document.getElementById(id)?.classList.remove('active');
 // ── Bulk Reassign Appointments ───────────────────────────────
 window.reassignDoctorAppointments = async (oldDoctorId) => {
     customConfirm('This will cancel all pending appointments for this doctor. You can then reassign them manually from the list.', async () => {
@@ -1115,10 +1057,6 @@ async function loadClinicSettings() {
 }
 
 function updateShiftDisplay() {
-    const display = document.getElementById('current-shift-display');
-    const hoursEl = document.getElementById('shift-hours-display');
-    if (!display || !hoursEl) return;
-
     const now = new Date();
     const hour = now.getHours();
     let shiftName = '';
@@ -1147,8 +1085,7 @@ function updateShiftDisplay() {
         }
     }
 
-    display.textContent = shiftName;
-    hoursEl.textContent = shiftHours;
+    updateMetricCard('metric-shift-card', 'Current Shift', shiftName, 'clock primary', shiftHours);
 }
 
 function getShiftFromTime(timeStr, mode) {

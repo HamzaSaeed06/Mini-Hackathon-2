@@ -15,6 +15,9 @@
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/id-card.css">
     <link rel="stylesheet" href="../css/profile.css">
+    <link rel="stylesheet" href="../css/enhanced-doctor.css">
+    <link rel="stylesheet" href="../css/notifications.css">
+    <link rel="stylesheet" href="../css/visual-excellence.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -101,40 +104,37 @@
                 <div class="table-container">
                     <div class="table-header">
                         <div class="header-main">
-                            <h3 class="chart-title">Upcoming Appointments</h3>
+                            <h3 class="chart-title">Current Appointments</h3>
                             <div class="search-box-wrapper">
                                 <i data-lucide="search"></i>
-                                <input type="text" placeholder="Search patient..." class="search-input"
-                                    id="appointment-search" oninput="filterAppointments()">
+                                <input type="text" id="appointment-search" class="table-search-input" placeholder="Search appointments..." oninput="filterAppointments()">
                             </div>
                         </div>
                     </div>
-
-                    <!-- Desktop Table -->
-                    <div class="table-wrapper desktop-only">
+                    
+                    <!-- Table Wrapper -->
+                    <div class="table-wrapper doctor-table-wrapper" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
                         <table class="data-table">
                             <thead>
                                 <tr>
                                     <th>Patient</th>
-                                    <th>Time</th>
+                                    <th>Email</th>
+                                    <th>Date/Time</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
+                                    <th class="text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="appointments-table-body">
-                                <tr>
-                                    <td colspan="4" class="empty-state">Loading appointments...</td>
-                                </tr>
+                                <!-- JS Injected -->
                             </tbody>
                         </table>
                     </div>
 
-                    <!-- Mobile Cards -->
+                    <!-- Mobile Card View -->
                     <div id="appointments-card-grid" class="staff-card-grid mobile-only">
-                        <p class="empty-state">Loading appointments...</p>
+                        <!-- JS Injected -->
                     </div>
 
-                    <!-- Pagination Controls -->
                     <div id="appointments-pagination-container" class="pagination-controls"></div>
                 </div>
             </section>
@@ -144,89 +144,81 @@
                 <div class="table-container">
                     <div class="table-header">
                         <div class="header-main">
-                            <h3 class="chart-title">Patient Records</h3>
+                            <h3 class="chart-title">Medical Records</h3>
                             <div class="search-box-wrapper">
                                 <i data-lucide="search"></i>
-                                <input type="text" placeholder="Search records..." class="search-input"
-                                    id="history-search" oninput="filterHistory()">
+                                <input type="text" id="history-search" class="table-search-input" placeholder="Search patients..." oninput="filterHistory()">
                             </div>
                         </div>
                     </div>
-                    <div class="table-wrapper desktop-only">
+
+                    <!-- Table Wrapper -->
+                    <div class="table-wrapper doctor-table-wrapper" style="overflow-x: auto; -webkit-overflow-scrolling: touch;">
                         <table class="data-table">
                             <thead>
                                 <tr>
                                     <th>Patient</th>
-                                    <th>Last Visit</th>
-                                    <th>History</th>
-                                    <th>Actions</th>
+                                    <th>Email</th>
+                                    <th>Joined</th>
+                                    <th>Status</th>
+                                    <th class="text-right">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="history-table-body">
-                                <!-- Data injected via JS -->
+                                <!-- JS Injected -->
                             </tbody>
                         </table>
                     </div>
 
+                    <!-- Mobile Card View -->
                     <div id="history-card-grid" class="staff-card-grid mobile-only">
-                        <p class="empty-state">Loading records...</p>
+                        <!-- JS Injected -->
                     </div>
 
-                    <!-- Pagination Controls -->
                     <div id="history-pagination-container" class="pagination-controls"></div>
                 </div>
             </section>
+
             <!-- AI CONSULTANT SECTION -->
             <section id="ai-diagnosis-section" class="content-section">
-                <div class="table-container">
-                    <div class="table-header">
-                        <div class="header-main">
-                            <h3 class="chart-title">AI Medical Consultant</h3>
-                            <span class="status-indicator-pill active" style="margin-left: 1rem;">Live Assist</span>
+                <div class="doc-ai-wrap">
+                    <!-- Header -->
+                    <div class="doc-ai-header">
+                        <div class="doc-ai-logo">
+                            <i data-lucide="brain-circuit"></i>
+                        </div>
+                        <div class="doc-ai-header-text">
+                            <span class="doc-ai-title">AI Medical Assistant</span>
+                            <span class="doc-ai-status"><span class="doc-ai-dot"></span> Online</span>
                         </div>
                     </div>
-
-                    <div class="ai-consultant-container" style="border: none; border-radius: 0;">
-                        <div class="ai-chat-messages" id="ai-chat-messages"
-                            style="height: 400px; border-bottom: 1px solid #e2e8f0;">
-                            <div class="chat-bubble bubble-ai">
-                                Hello Dr. <span class="dr-name-placeholder">...</span>! I'm your AI Medical Assistant.
-                                How can I help you with a diagnosis today?
+                    <!-- Messages -->
+                    <div class="doc-ai-messages" id="ai-chat-messages">
+                        <div class="doc-ai-row doc-ai-row-bot">
+                            <div class="doc-ai-av doc-ai-av-bot"><i data-lucide="brain-circuit"></i></div>
+                            <div class="doc-ai-bubble doc-ai-bubble-bot">
+                                👋 Marhaba! Patient ki <b>age</b> aur <b>symptoms</b> batayein.<br>
+                                Misal: <i>"Age: 8, bukhar, khansee, sore throat"</i>
                             </div>
                         </div>
-
-                        <div class="ai-chat-input-area"
-                            style="padding: 1.25rem; display: flex; gap: 1rem; background: #f8fafc;">
-                            <input type="text" id="symptoms-input"
-                                placeholder="Type symptoms or patient observations..."
-                                style="flex:1; border: 2px solid #e2e8f0; padding: 0.75rem 1rem; border-radius: 12px; outline: none; transition: border-color 0.2s;"
-                                onfocus="this.style.borderColor='var(--primary)'"
-                                onblur="this.style.borderColor='#e2e8f0'">
-                            <button class="btn btn-primary btn-sm" id="analyze-ai-btn" onclick="analyzeSymptoms()"
-                                style="margin:0; height: auto;">
-                                <i data-lucide="sparkles"></i>
-                                <span>Analyze</span>
-                            </button>
-                        </div>
                     </div>
-                </div>
-
-                <div class="glass-panel"
-                    style="margin-top: 2rem; padding: 1.5rem; display: flex; align-items: center; gap: 1.5rem;">
-                    <div class="banner-icon dr-gradient"
-                        style="color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                        <i data-lucide="info"></i>
-                    </div>
-                    <div>
-                        <h4 style="margin:0;">Pro Tip: Specificity Matters</h4>
-                        <p class="text-muted" style="margin: 0.25rem 0 0; font-size: 0.9rem;">The more detail you
-                            provide about symptoms and duration, the more accurate the AI suggestions will be.</p>
+                    <!-- Input -->
+                    <div class="doc-ai-input-bar">
+                        <textarea id="symptoms-input" class="doc-ai-textarea" rows="1"
+                            placeholder="Age: 25, symptoms: fever, cough..."
+                            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();analyzeSymptoms();}"></textarea>
+                        <button class="doc-ai-send" onclick="analyzeSymptoms()" title="Send">
+                            <i data-lucide="send"></i>
+                        </button>
                     </div>
                 </div>
             </section>
 
+
             <!-- STATS SECTION -->
             <section id="stats-section" class="content-section">
+                <div class="metrics-grid" id="stats-grid">
+                    <!-- Stat cards (metric-card) rendered by JS -->
                 </div>
             </section>
 
@@ -322,31 +314,31 @@
         <div class="modal-content" style="max-width: 600px;">
             <div class="modal-header">
                 <h3>Process Appointment</h3>
-                <button class="modal-close-btn" onclick="closeModal('diagnosis-modal')"><i data-lucide="x"></i></button>
+                <button class="modal-close" style="background:transparent; border:none; display:flex; align-items:center;" onclick="closeModal('diagnosis-modal')"><i data-lucide="x"></i></button>
             </div>
             <div class="modal-body">
                 <form id="diagnosis-form">
                     <input type="hidden" id="active-appt-id">
                     
                     <div class="form-group">
-                        <label><i data-lucide="clipboard-list" style="width:14px; margin-right:4px;"></i> Physical Findings / Symptoms</label>
-                        <textarea id="finding-text" rows="3" placeholder="Describe patient observations..."></textarea>
+                        <label class="form-label"><i data-lucide="clipboard-list" style="width:14px; margin-right:4px;"></i> Physical Findings / Symptoms</label>
+                        <textarea id="finding-text" class="form-input" rows="3" placeholder="Describe patient observations..."></textarea>
                     </div>
 
                     <div class="form-group" style="margin-bottom: 1.5rem;">
-                        <button type="button" class="spc-btn primary" style="width:100%; justify-content:center;" onclick="rapidAiAssist()">
+                        <button type="button" class="btn btn-primary" style="width:100%; justify-content:center; background: linear-gradient(135deg, #8b5cf6, #6d28d9); border:none;" onclick="rapidAiAssist()">
                             <i data-lucide="sparkles"></i> Use AI Rapid Assist
                         </button>
                     </div>
 
                     <div class="form-group">
-                        <label><i data-lucide="activity" style="width:14px; margin-right:4px;"></i> Diagnosis</label>
-                        <input type="text" id="diagnosis-input" placeholder="Enter final diagnosis">
+                        <label class="form-label"><i data-lucide="activity" style="width:14px; margin-right:4px;"></i> Diagnosis</label>
+                        <input type="text" id="diagnosis-input" class="form-input" placeholder="Enter final diagnosis">
                     </div>
 
                     <div class="form-group">
-                        <label><i data-lucide="pill" style="width:14px; margin-right:4px;"></i> Medicines</label>
-                        <input type="text" id="medicines-input" placeholder="Separate medicines by comma (e.g. Panadol, Amoxicillin)">
+                        <label class="form-label"><i data-lucide="pill" style="width:14px; margin-right:4px;"></i> Medicines</label>
+                        <input type="text" id="medicines-input" class="form-input" placeholder="Separate medicines by comma (e.g. Panadol, Amoxicillin)">
                     </div>
 
                     <button type="button" class="btn btn-primary w-full" style="margin-top: 1.5rem; height: 48px; font-weight: 700;"
@@ -371,17 +363,17 @@
                     <h3 id="history-modal-patient-name">Patient Medical History</h3>
                     <p class="text-muted" style="font-size: 0.8rem; margin-top: 2px;">Comprehensive timeline of past visits and prescriptions</p>
                 </div>
-                <button class="modal-close-btn" onclick="closeModal('medical-history-modal')"><i data-lucide="x"></i></button>
+                <button class="modal-close" style="background:transparent; border:none; display:flex; align-items:center;" onclick="closeModal('medical-history-modal')"><i data-lucide="x"></i></button>
             </div>
             <div class="modal-body" style="padding: 0 !important; background: #f8fafc;">
                 <!-- Date Filters -->
                 <div class="modal-filter-bar" style="padding: 1rem 1.5rem; background: #fff; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <label style="font-size: 0.75rem; font-weight: 600; color: #64748b;">From:</label>
+                        <label class="form-label" style="margin:0;">From:</label>
                         <input type="date" id="history-filter-start" class="form-input" style="padding: 6px 10px; font-size: 0.8rem; width: auto; border-radius: 8px;">
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <label style="font-size: 0.75rem; font-weight: 600; color: #64748b;">To:</label>
+                        <label class="form-label" style="margin:0;">To:</label>
                         <input type="date" id="history-filter-end" class="form-input" style="padding: 6px 10px; font-size: 0.8rem; width: auto; border-radius: 8px;">
                     </div>
                     <button class="btn btn-primary btn-sm" onclick="applyHistoryFilter()" style="margin: 0; padding: 6px 14px; height: auto;">Filter</button>
@@ -404,6 +396,7 @@
 
     <!-- Scripts -->
     <script type="module" src="./js/doctor.js"></script>
+    <!-- enhanced-doctor.js removed due to conflicts with core logic -->
     <script>
         // Inline layout helpers
         window.openSidebar = () => {

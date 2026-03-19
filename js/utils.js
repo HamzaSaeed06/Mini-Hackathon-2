@@ -30,15 +30,16 @@ export function showToast(message, type = 'success') {
     container.appendChild(toast);
     if (typeof lucide !== 'undefined') lucide.createIcons({ root: toast });
 
+    // Premium Animation in
     requestAnimationFrame(() => {
         requestAnimationFrame(() => toast.classList.add('show'));
     });
 
+    // Auto-remove with transition
     setTimeout(() => {
-        toast.style.transform = 'translateY(-40px) scaleX(0)';
-        toast.style.opacity = '0';
+        toast.classList.remove('show');
         setTimeout(() => toast.remove(), 500);
-    }, 3500);
+    }, 4000);
 }
 
 // ── Custom Confirm Dialog ─────────────────────────────────────
@@ -69,7 +70,10 @@ export function customConfirm(message, onConfirm, options = {}) {
                 <p id="confirm-msg-text"></p>
                 <div class="confirm-actions">
                     <button class="btn btn-secondary" id="confirm-cancel-btn">${cancelText}</button>
-                    <button class="btn btn-primary"   id="confirm-ok-btn">${confirmText}</button>
+                    <button class="btn btn-primary"   id="confirm-ok-btn">
+                        <span class="btn-text">${confirmText}</span>
+                        <span class="btn-loader"></span>
+                    </button>
                 </div>
             </div>
         `;
@@ -88,7 +92,7 @@ export function customConfirm(message, onConfirm, options = {}) {
 
     msgEl.textContent   = message;
     titleEl.textContent = title;
-    okBtn.textContent   = confirmText;
+    okBtn.querySelector('.btn-text').textContent = confirmText;
     cancelBtn.textContent = cancelText;
     
     // Update icon
@@ -105,8 +109,25 @@ export function customConfirm(message, onConfirm, options = {}) {
 
     newCancel.addEventListener('click', () => overlay.classList.remove('active'));
     newOk.addEventListener('click', async () => {
-        overlay.classList.remove('active');
-        if (onConfirm) await onConfirm();
+        const btnText = newOk.querySelector('.btn-text');
+        const originalText = btnText.textContent;
+        
+        try {
+            newOk.classList.add('loading');
+            newOk.disabled = true;
+            // Update text to "Verb-ing..." if possible, else just keep original with loader
+            if (confirmText.toLowerCase().includes('delete')) btnText.textContent = 'Deleting...';
+            else if (confirmText.toLowerCase().includes('save')) btnText.textContent = 'Saving...';
+            else if (confirmText.toLowerCase().includes('cancel')) btnText.textContent = 'Cancelling...';
+            else if (confirmText.toLowerCase().includes('assign')) btnText.textContent = 'Assigning...';
+            
+            if (onConfirm) await onConfirm();
+        } finally {
+            newOk.classList.remove('loading');
+            newOk.disabled = false;
+            btnText.textContent = originalText;
+            overlay.classList.remove('active');
+        }
     });
 }
 
@@ -202,37 +223,26 @@ export const AVATAR_PALETTES = [
     { text: '#0d9488', bg: '#ccfbf1', border: '#0d9488' }  // Teal
 ];
 
-export const SKELETON_DELAY = 600;
-
 /**
  * Deterministically get a color palette index from a User ID string.
- * This guarantees the same user gets the same color everywhere.
  */
 export function getAvatarPalette(userId) {
     if (!userId || typeof userId !== 'string') return AVATAR_PALETTES[0];
-    
-    // Hash string to number
     let hash = 0;
     for (let i = 0; i < userId.length; i++) {
         hash = userId.charCodeAt(i) + ((hash << 5) - hash);
     }
-    
-    // Convert to positive index
     const index = Math.abs(hash) % AVATAR_PALETTES.length;
     return AVATAR_PALETTES[index];
 }
 
 /**
- * Applies a consistent background and text color to a text-based avatar
- * based on the user's ID.
+ * Applies background and text color to a text-based avatar.
  */
 export function applyAvatarStyle(userDocOrId, avatarEl) {
     if (!avatarEl || !userDocOrId) return;
-    
     let uid = typeof userDocOrId === 'string' ? userDocOrId : (userDocOrId.uid || userDocOrId.id);
     let photo = typeof userDocOrId === 'object' ? userDocOrId.photoURL : null;
-
-    // If user has a photo, clear these styles
     if (photo) {
         avatarEl.style.backgroundColor = '';
         avatarEl.style.color = '';
@@ -241,9 +251,7 @@ export function applyAvatarStyle(userDocOrId, avatarEl) {
         avatarEl.style.borderStyle = '';
         return;
     }
-
     const palette = getAvatarPalette(uid);
-
     avatarEl.style.backgroundColor = palette.bg;
     avatarEl.style.color = palette.text;
     avatarEl.style.borderColor = palette.border;
@@ -252,17 +260,14 @@ export function applyAvatarStyle(userDocOrId, avatarEl) {
 }
 
 /**
- * Centralized logic to get the innerHTML and styles for an avatar.
- * Useful for building dynamic table/card HTML.
+ * Centralized logic for avatar HTML and styles.
  */
 export function getAvatarConfig(user) {
     if (!user) return { html: '?', style: 'background:#f1f5f9; color:#64748b;', classes: '' };
-    
     const uid = user.uid || user.id || '';
     const name = user.name || 'User';
     const photo = user.photoURL || '';
     const initial = (name || 'U')[0].toUpperCase();
-    
     if (photo) {
         return {
             html: `<img src="${photo}" alt="${name}">`,
@@ -287,3 +292,4 @@ export function escapeHtml(str) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
 }
+

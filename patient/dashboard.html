@@ -15,6 +15,9 @@
     <link rel="stylesheet" href="../css/dashboard.css">
     <link rel="stylesheet" href="../css/id-card.css">
     <link rel="stylesheet" href="../css/profile.css">
+    <link rel="stylesheet" href="../css/smart-booking.css">
+    <link rel="stylesheet" href="../css/notifications.css">
+    <link rel="stylesheet" href="../css/visual-excellence.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -52,6 +55,10 @@
             <div class="nav-item" data-target="book-now-section" data-title="Book Appointment">
                 <i data-lucide="plus-circle"></i>
                 <span>Book Appointment</span>
+            </div>
+            <div class="nav-item" data-target="smart-booking-section" data-title="Smart Booking">
+                <i data-lucide="calendar-clock"></i>
+                <span>Smart Booking</span>
             </div>
             <div class="nav-item" data-target="profile-section" data-title="My Profile">
                 <i data-lucide="user-circle"></i>
@@ -95,14 +102,14 @@
             <!-- OVERVIEW SECTION -->
             <section id="overview-section" class="content-section active">
                 <div class="metrics-grid">
-                    <div class="metric-card">
+                    <div class="metric-card" id="metric-consultations-card">
                         <div class="metric-header">
                             <span class="metric-title">Total Consultations</span>
                             <div class="metric-icon success"><i data-lucide="stethoscope"></i></div>
                         </div>
                         <div class="metric-value" id="stats-total-visits">0</div>
                     </div>
-                    <div class="metric-card">
+                    <div class="metric-card" id="metric-next-appt-card">
                         <div class="metric-header">
                             <span class="metric-title">Next Appointment</span>
                             <div class="metric-icon primary"><i data-lucide="calendar"></i></div>
@@ -297,6 +304,11 @@
                 </div>
             </section>
 
+            <!-- SMART BOOKING SECTION -->
+            <section id="smart-booking-section" class="content-section">
+                <!-- Smart Booking content will be rendered by JavaScript -->
+            </section>
+
             <!-- PROFILE SECTION -->
             <section id="profile-section" class="content-section">
                 <div class="profile-container">
@@ -378,6 +390,9 @@
 
     <!-- Scripts -->
     <script type="module" src="./js/patient.js"></script>
+    <script type="module" src="./js/smart-booking.js"></script>
+    <script src="../js/notification-system.js"></script>
+    <script src="../js/visual-excellence.js"></script>
     <script>
         window.openSidebar = () => {
             document.getElementById('sidebar').classList.add('open');

@@ -4,7 +4,6 @@ import {
     AVATAR_PALETTES,
     getAvatarPalette,
     getAvatarConfig,
-    SKELETON_DELAY,
     showToast
 } from '../../js/utils.js';
 import {
@@ -25,6 +24,26 @@ const pageTitle = document.getElementById('page-title');
 
 let userData = null;
 let medicalRecords = [];
+
+// Instant initialization
+if (window.lucide) lucide.createIcons();
+
+
+function updateMetricCard(id, title, value, iconClass) {
+    const container = document.getElementById(id);
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="metric-header">
+            <span class="metric-title">${title}</span>
+            <div class="metric-icon ${iconClass.includes('success') ? 'success' : 'primary'}">
+                <i data-lucide="${iconClass}"></i>
+            </div>
+        </div>
+        <div class="metric-value">${value}</div>
+    `;
+    if (window.lucide) lucide.createIcons();
+}
 
 // ── Auth Guard ────────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -223,32 +242,16 @@ navItems.forEach(item => {
                 sec.classList.add('active');
                 
                 // Perception Delay on Click
-                if (targetId === 'appointments-section') {
-                    renderSkeletons('appts');
-                    setTimeout(() => loadMyAppointments(auth.currentUser.uid), SKELETON_DELAY || 600);
-                } else if (targetId === 'patients-history-section') {
-                    renderSkeletons('history');
-                    setTimeout(() => loadMyHistory(auth.currentUser.uid), SKELETON_DELAY || 600);
-                } else {
-                    const contentArea = sec.querySelector('.table-container') || sec.querySelector('.profile-container') || sec;
-                    if (!contentArea.dataset.loader) {
-                        contentArea.dataset.loader = 'true';
-                        const originalOpacity = contentArea.style.opacity;
-                        contentArea.style.opacity = '0.5';
-                        contentArea.style.pointerEvents = 'none';
-                        contentArea.style.position = 'relative';
-                        
-                        const loader = document.createElement('div');
-                        loader.className = 'section-loader-overlay';
-                        loader.innerHTML = `<div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); z-index:50; color:var(--primary);"><svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-loader-2 spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg></div>`;
-                        contentArea.appendChild(loader);
-
-                        setTimeout(() => {
-                            contentArea.style.opacity = originalOpacity || '1';
-                            contentArea.style.pointerEvents = 'auto';
-                            loader.remove();
-                            delete contentArea.dataset.loader;
-                        }, SKELETON_DELAY || 600);
+                if (targetId === 'medical-history-section') {
+                    loadMyHistory(auth.currentUser.uid);
+                } else if (targetId === 'appointments-section') {
+                    loadMyAppointments(auth.currentUser.uid);
+                } else if (targetId === 'smart-booking-section') {
+                    if (!item.dataset.loaded) {
+                        if (window.smartBooking) {
+                            window.smartBooking.renderBookingInterface();
+                        }
+                        item.dataset.loaded = 'true';
                     }
                 }
             }
@@ -276,47 +279,6 @@ if (logoutBtn) {
 window.openModal = (id) => document.getElementById(id)?.classList.add('active');
 window.closeModal = (id) => document.getElementById(id)?.classList.remove('active');
 
-window.openModal = (id) => document.getElementById(id)?.classList.add('active');
-window.closeModal = (id) => document.getElementById(id)?.classList.remove('active');
-
-function renderSkeletons(type) {
-    const tbody = document.getElementById(`${type}-table-body`);
-    const cardGrid = document.getElementById(`${type}-card-grid`);
-    
-    if (!tbody || !cardGrid) return;
-
-    const skeletonRow = `
-        <tr class="skeleton-row">
-            <td><div class="skeleton-text skeleton" style="width:100px;"></div></td>
-            <td><div class="user-info-cell"><div class="skeleton skeleton-avatar"></div><div class="skeleton-text skeleton" style="width:120px;"></div></div></td>
-            <td><div class="skeleton-badge skeleton"></div></td>
-            <td class="table-actions-cell"><div class="skeleton-btn skeleton"></div></td>
-        </tr>
-    `;
-    
-    const skeletonCard = `
-        <div class="compact-staff-card" style="border-color:#F1F5F9;">
-            <div class="card-header-row">
-                <div class="header-left">
-                    <div class="skeleton skeleton-avatar" style="width:40px;height:40px;"></div>
-                    <div>
-                        <div class="skeleton-text skeleton" style="width:100px;height:16px;"></div>
-                        <div class="skeleton-text skeleton" style="width:70px;height:12px;"></div>
-                    </div>
-                </div>
-            </div>
-            <div class="card-body-section">
-                <div class="skeleton-badge skeleton"></div>
-            </div>
-            <div class="card-actions-vertical" style="margin-top:0.5rem;">
-                <div class="skeleton skeleton-btn" style="width:100%;height:36px;border-radius:8px;"></div>
-            </div>
-        </div>
-    `;
-
-    tbody.innerHTML = skeletonRow.repeat(4);
-    cardGrid.innerHTML = skeletonCard.repeat(3);
-}
 
 // ── Load Medical History ──────────────────────────────────────
 let currentHistoryPage = 1;
@@ -327,7 +289,6 @@ function loadMyHistory(uid) {
     const cardGrid = document.getElementById('history-card-grid');
     const statsTotalVisits = document.getElementById('stats-total-visits');
     const pagination = document.getElementById('history-pagination');
-
     const q = query(
         collection(db, 'appointments'),
         where('patientId', '==', uid),
@@ -414,12 +375,10 @@ function loadMyHistory(uid) {
         medicalRecords = [];
         snap.forEach(d => medicalRecords.push({ id: d.id, ...d.data() }));
         
-        if (statsTotalVisits) statsTotalVisits.textContent = snap.size;
+        updateMetricCard('metric-consultations-card', 'Total Consultations', snap.size, 'stethoscope');
         
-        setTimeout(() => {
-            currentHistoryPage = 1;
-            renderHistory();
-        }, SKELETON_DELAY);
+        currentHistoryPage = 1;
+        renderHistory();
     });
 }
 
@@ -512,12 +471,12 @@ function loadMyAppointments(uid) {
         if (tableBody) tableBody.innerHTML = tableHtml || '<tr><td colspan="4" class="empty-state">No appointments yet.</td></tr>';
         if (cardGrid) cardGrid.innerHTML = cardHtml || '<p class="empty-state">No appointments yet.</p>';
 
-        if (statsNextAppt) {
-            const upcoming = allPatientAppts.find(a => a.status !== 'completed' && (a.date || '') >= today);
-            statsNextAppt.textContent = upcoming
-                ? `${upcoming.date ? new Date(upcoming.date + 'T00:00:00').toLocaleDateString('en-PK', { day: '2-digit', month: 'short' }) : ''} · ${upcoming.time} · Dr. ${upcoming.doctorName.split(' ')[0]}`
-                : 'None Scheduled';
-        }
+        const upcoming = allPatientAppts.find(a => a.status !== 'completed' && (a.date || '') >= today);
+        const nextValue = upcoming
+            ? `${upcoming.date ? new Date(upcoming.date + 'T00:00:00').toLocaleDateString('en-PK', { day: '2-digit', month: 'short' }) : ''} · ${upcoming.time}`
+            : 'None Scheduled';
+        
+        updateMetricCard('metric-next-appt-card', 'Next Appointment', nextValue, 'calendar');
 
         if (pagination && totalPages > 1) {
             renderPagination(pagination, currentApptsPage, totalPages, (newPage) => {
@@ -536,40 +495,36 @@ function loadMyAppointments(uid) {
     const q = query(collection(db, 'appointments'), where('patientId', '==', uid));
 
     onSnapshot(q, (snap) => {
-        setTimeout(() => {
-            allPatientAppts = [];
-            snap.forEach(d => allPatientAppts.push({ id: d.id, ...d.data() }));
+        allPatientAppts = [];
+        snap.forEach(d => allPatientAppts.push({ id: d.id, ...d.data() }));
 
-            allPatientAppts.sort((a, b) => {
-                const da = a.date || '';
-                const db_ = b.date || '';
-                if (da !== db_) return da > db_ ? 1 : -1;
-                return (a.time || '') > (b.time || '') ? 1 : -1;
-            });
+        allPatientAppts.sort((a, b) => {
+            const da = a.date || '';
+            const db_ = b.date || '';
+            if (da !== db_) return da > db_ ? 1 : -1;
+            return (a.time || '') > (b.time || '') ? 1 : -1;
+        });
 
-            currentApptsPage = 1;
-            renderAppts();
-        }, SKELETON_DELAY);
+        currentApptsPage = 1;
+        renderAppts();
     });
 }
 
 // ── Populate Doctors ──────────────────────────────────────────
 async function populateDoctors() {
     onSnapshot(query(collection(db, 'users'), where('role', '==', 'doctor')), (snap) => {
-        setTimeout(() => {
-            const doctors = [];
-            snap.forEach(d => {
-                const data = d.data();
-                doctors.push({
-                    id: d.id,
-                    name: data.name,
-                    sub: data.specialization || 'General Physician',
-                    photoURL: data.photoURL,
-                    extra: { ...data }
-                });
+        const doctors = [];
+        snap.forEach(d => {
+            const data = d.data();
+            doctors.push({
+                id: d.id,
+                name: data.name,
+                sub: data.specialization || 'General Physician',
+                photoURL: data.photoURL,
+                extra: { ...data }
             });
-            initCustomSelect('doctor-select-container', 'doctor-options-list', 'select-doctor', doctors);
-        }, SKELETON_DELAY);
+        });
+        initCustomSelect('doctor-select-container', 'doctor-options-list', 'select-doctor', doctors);
     });
 }
 
@@ -658,15 +613,8 @@ window.askAi = async () => {
     addChatMessage('user', msg);
     input.value = '';
 
-    // Simulate AI thinking
-    const loaderId = addTypingIndicator();
-
-    // Simulate Gemini AI Response
-    setTimeout(() => {
-        removeTypingIndicator(loaderId);
-        const response = simulateAiResponse(msg);
-        typeText(response);
-    }, 1500);
+    const response = simulateAiResponse(msg);
+    addChatMessage('ai', response);
 };
 
 window.explainDiagnosis = (apptId) => {
@@ -677,13 +625,8 @@ window.explainDiagnosis = (apptId) => {
     const prompt = `Can you explain my diagnosis of "${appt.diagnosis}" and what these medicines do: ${appt.medicines}?`;
 
     addChatMessage('user', prompt);
-    const loaderId = addTypingIndicator();
-
-    setTimeout(() => {
-        removeTypingIndicator(loaderId);
-        const response = `Certainly! Your diagnosis of **${appt.diagnosis}** means... (Simulated Explanation of ${appt.medicines}). Please take your medications exactly as Dr. ${appt.doctorName} prescribed.`;
-        typeText(response);
-    }, 1500);
+    const response = `Certainly! Your diagnosis of **${appt.diagnosis}** means... (Reflecting your records: ${appt.medicines}). Please take your medications exactly as Dr. ${appt.doctorName} prescribed.`;
+    addChatMessage('ai', response);
 };
 
 function addChatMessage(role, text) {
@@ -713,18 +656,7 @@ function removeTypingIndicator(id) {
 }
 
 function typeText(text) {
-    const container = document.getElementById('ai-chat-messages');
-    const div = document.createElement('div');
-    div.className = 'chat-bubble bubble-ai';
-    container.appendChild(div);
-
-    let i = 0;
-    const interval = setInterval(() => {
-        div.innerHTML += text[i];
-        i++;
-        container.scrollTop = container.scrollHeight;
-        if (i >= text.length) clearInterval(interval);
-    }, 20);
+    addChatMessage('ai', text);
 }
 
 function simulateAiResponse(userMsg) {
@@ -848,7 +780,7 @@ window.downloadIDCardDirectly = async (uid, roleType = 'patient') => {
         }
 
         // Wait for rendering & QR
-        await new Promise(resolve => setTimeout(resolve, 800));
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // PDF Options
         const opt = {

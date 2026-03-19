@@ -376,8 +376,6 @@ a {
 .page-content {
     padding: 1.75rem;
     flex: 1;
-    max-width: 1600px;
-    margin: 0 auto;
     width: 100%;
 }
 
@@ -436,16 +434,16 @@ a {
     background: var(--surface);
     padding: 1.5rem;
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
-    transition: box-shadow 0.2s ease;
+    border: 1px solid #e2e8f0; /* Visible gray border */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Light normal shadow */
+    transition: box-shadow 0.25s ease;
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
 
 .metric-card:hover {
-    box-shadow: 0 2px 8px 0 rgb(0 0 0 / 0.06);
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1); /* Refined hover shadow */
 }
 
 .metric-header {
@@ -538,9 +536,18 @@ a {
     background: var(--surface);
     padding: 1.5rem;
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid #e2e8f0; /* Visible gray border */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.25s ease;
     min-width: 0;
+}
+
+.chart-card:hover {
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1);
+}
+
+.chart-card:hover {
+    box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.12);
 }
 
 .chart-header {
@@ -567,10 +574,19 @@ a {
 .table-container {
     background: var(--surface);
     border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow-sm);
+    border: 1px solid #e2e8f0; /* Visible gray border */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.25s ease;
     overflow: hidden;
     padding: 0;
+}
+
+.table-container:hover {
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1);
+}
+
+.table-container:hover {
+    box-shadow: 0 12px 20px -8px rgba(0, 0, 0, 0.1);
 }
 
 .table-header {

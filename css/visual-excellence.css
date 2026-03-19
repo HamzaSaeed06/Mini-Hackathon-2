@@ -1,0 +1,262 @@
+/* ============================================
+   Visual Excellence — Micro-interactions,
+   Live Pips, Animations
+   ============================================ */
+
+/* Ripple Effect */
+.btn { position: relative; overflow: hidden; }
+
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.35);
+    transform: scale(0);
+    animation: ripple-expand 0.6s linear;
+    pointer-events: none;
+}
+
+@keyframes ripple-expand {
+    to { transform: scale(4); opacity: 0; }
+}
+
+/* Page transitions */
+.page-transition-ready * { transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); }
+
+.page-transition-out {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+/* Input focus glow */
+.input-focused input,
+.input-focused textarea,
+.input-focused select {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    border-color: var(--primary) !important;
+}
+
+/* Smooth section transitions */
+.content-section {
+    opacity: 0;
+    display: none;
+    transition: opacity 0.3s ease;
+}
+
+.content-section.active {
+    display: block;
+    opacity: 1;
+}
+
+.content-section.fade-in {
+    animation: sectionFadeIn 0.3s ease forwards;
+}
+
+.content-section.fade-out {
+    animation: sectionFadeOut 0.3s ease forwards;
+}
+
+@keyframes sectionFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sectionFadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* Intersection Observer animate-in */
+.stat-card, .metric-card {
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.stat-card.animate-in, .metric-card.animate-in {
+    opacity: 1;
+}
+
+/* Metric updated flash */
+.metric-updated {
+    animation: metricFlash 0.8s ease;
+}
+
+@keyframes metricFlash {
+    0%, 100% { background: inherit; }
+    40%       { background: var(--primary-light); }
+}
+
+/* Live Status Pips */
+#live-status-pips {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.status-pip {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    background: var(--surface);
+    border: none;
+    border-bottom: 2px solid var(--border);
+    border-radius: var(--radius-xl);
+    padding: 0.625rem 1rem;
+    box-shadow: 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+}
+
+.status-pip.animate-in {
+    opacity: 1;
+}
+
+.pip-indicator {
+    position: relative;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.pip-pulse {
+    position: absolute;
+    inset: -4px;
+    border-radius: 50%;
+    animation: pip-ring 2s ease-out infinite;
+}
+
+@keyframes pip-ring {
+    0%   { transform: scale(0.8); opacity: 0.8; }
+    70%  { transform: scale(1.6); opacity: 0; }
+    100% { transform: scale(0.8); opacity: 0; }
+}
+
+.pip-content {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.pip-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.pip-count {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.pip-updated .pip-indicator {
+    animation: pip-bounce 0.5s ease;
+}
+
+@keyframes pip-bounce {
+    0%, 100% { transform: scale(1); }
+    50%       { transform: scale(1.5); }
+}
+
+/* Particle Canvas */
+#particle-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: -1;
+    opacity: 0.15;
+}
+
+/* Success Particles */
+.success-particle {
+    position: fixed;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success);
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94), opacity 0.8s ease;
+}
+
+/* Error Particles */
+.error-particle {
+    position: fixed;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--danger);
+    pointer-events: none;
+    z-index: 9999;
+    transition: transform 0.6s ease-out, opacity 0.6s ease;
+}
+
+/* Loading Overlay */
+.loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.88);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    border-radius: inherit;
+    z-index: 10;
+    animation: fadeIn 0.2s ease;
+}
+
+.loading-overlay .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.loading-message {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.loading-hide {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes spin    { to { transform: rotate(360deg); } }
+@keyframes fadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* Progress Animation */
+.progress-fill {
+    height: 100%;
+    border-radius: var(--radius-full);
+    transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--primary);
+}
+
+/* Chart bars */
+.chart-bar {
+    transition: height 0.5s ease-out;
+}
+
+/* Navigation active state */
+.nav-active {
+    background-color: var(--primary-light) !important;
+    color: var(--primary) !important;
+}
+
+/* Modal transitions */
+.modal-show {
+    animation: modalIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.modal-hide {
+    animation: modalOut 0.25s ease-in;
+}
+
+@keyframes modalIn  { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+@keyframes modalOut { from { opacity: 1; transform: scale(1);    } to { opacity: 0; transform: scale(0.92); } }
+
+/* Hover lift utility */
+.hover-lift { transition: var(--transition); }
+.hover-lift:hover { 
+    box-shadow: 0 20px 25px -10px rgba(0, 0, 0, 0.15) !important; /* Force bottom only shadow */
+    border-bottom-color: #e2e8f0 !important; /* Force gray border */
+}
