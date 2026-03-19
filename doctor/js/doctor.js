@@ -305,6 +305,9 @@ function loadAppointments(doctorId) {
         allAppointments = [];
         snap.forEach(d => allAppointments.push({ id: d.id, ...d.data() }));
         renderApptPage();
+    }, (err) => {
+        console.warn('Appointments listener error (may be offline):', err.code);
+        renderApptPage();
     });
 }
 
@@ -611,6 +614,8 @@ async function loadPersonalStats(doctorId) {
         `;
 
         if (window.lucide) lucide.createIcons();
+    }, (err) => {
+        console.warn('Stats listener error (may be offline):', err.code);
     });
 }
 
@@ -925,6 +930,9 @@ async function loadMedicalHistory() {
         }
         currentHistPage = 1;
         renderHistoryTable();
+    }, (err) => {
+        console.warn('Medical history listener error (may be offline):', err.code);
+        if (historyBody) historyBody.innerHTML = '<tr><td colspan="5" class="empty-state">Unable to load patient records. Check connection.</td></tr>';
     });
 }
 

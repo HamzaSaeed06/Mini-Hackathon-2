@@ -379,6 +379,9 @@ function loadMyHistory(uid) {
         
         currentHistoryPage = 1;
         renderHistory();
+    }, (err) => {
+        console.warn('Medical records listener error (may be offline):', err.code);
+        renderHistory();
     });
 }
 
@@ -508,6 +511,9 @@ function loadMyAppointments(uid) {
         });
 
         currentApptsPage = 1;
+        renderAppts();
+    }, (err) => {
+        console.warn('Appointments listener error (may be offline):', err.code);
         renderAppts();
     });
 }

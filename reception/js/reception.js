@@ -260,7 +260,9 @@ navItems.forEach(item => {
             }
         });
 
-        const newTitle = item.getAttribute('data-title') || item.querySelector('span').textContent;
+        const newTitle = item.getAttribute('data-title') || item.querySelector('span')?.textContent || '';
+        if (pageTitle && newTitle) pageTitle.textContent = newTitle;
+
         // Special handling for profile section
         if (targetId === 'profile-section') {
             if (userData) {
@@ -285,6 +287,8 @@ function loadStats() {
 
     onSnapshot(query(collection(db, 'users'), where('role', '==', 'patient')), (snap) => {
         updateMetricCard('metric-registrations-card', "Today's Registrations", snap.size, 'user-plus');
+    }, (err) => {
+        console.warn('Stats listener error (may be offline):', err.code);
     });
 }
 
@@ -329,6 +333,9 @@ function loadQueue() {
 
         updateTabBadges();
         currentQueuePage = 1;
+        renderQueueTab();
+    }, (err) => {
+        console.warn('Queue listener error (may be offline):', err.code);
         renderQueueTab();
     });
 }
@@ -460,6 +467,8 @@ async function populateDropdowns() {
             });
         });
         initCustomSelect('patient-select-container', 'patient-options-list', 'select-patient', patients);
+    }, (err) => {
+        console.warn('Patient dropdown listener error (may be offline):', err.code);
     });
 
     // Load Doctors (Active only)
@@ -476,6 +485,8 @@ async function populateDropdowns() {
             });
         });
         initCustomSelect('doctor-select-container', 'doctor-options-list', 'select-doctor', doctors);
+    }, (err) => {
+        console.warn('Doctor dropdown listener error (may be offline):', err.code);
     });
 }
 
@@ -666,6 +677,9 @@ function loadPatientDirectory() {
         patientDirectoryCache.length = 0;
         snap.forEach(d => patientDirectoryCache.push({ id: d.id, ...d.data() }));
         renderPatientDirectory(patientDirectoryCache);
+    }, (err) => {
+        console.warn('Patient directory listener error (may be offline):', err.code);
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="4" class="empty-state">Unable to load patients. Check connection.</td></tr>';
     });
 }
 
@@ -752,6 +766,9 @@ function loadDoctorDirectory() {
         doctorDirectoryCache.length = 0;
         snap.forEach(d => doctorDirectoryCache.push({ id: d.id, ...d.data() }));
         renderDoctorDirectory(doctorDirectoryCache);
+    }, (err) => {
+        console.warn('Doctor directory listener error (may be offline):', err.code);
+        if (tableBody) tableBody.innerHTML = '<tr><td colspan="5" class="empty-state">Unable to load doctors. Check connection.</td></tr>';
     });
 }
 

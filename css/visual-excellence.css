@@ -60,12 +60,18 @@
 
 /* Intersection Observer animate-in */
 .stat-card, .metric-card {
+    opacity: 1;
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.stat-card.animate-ready, .metric-card.animate-ready {
     opacity: 0;
-    transition: opacity 0.4s ease;
+    transform: translateY(8px);
 }
 
 .stat-card.animate-in, .metric-card.animate-in {
     opacity: 1;
+    transform: translateY(0);
 }
 
 /* Metric updated flash */

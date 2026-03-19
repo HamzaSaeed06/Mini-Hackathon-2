@@ -359,6 +359,8 @@ async function fetchDashboardStats() {
             patientChartInstance.data.datasets[0].data = monthlyData;
             patientChartInstance.update();
         }
+    }, (err) => {
+        console.warn('Users stats listener error (may be offline):', err.code);
     });
 
     onSnapshot(collection(db, 'appointments'), (snap) => {
@@ -373,6 +375,8 @@ async function fetchDashboardStats() {
             else counts.pending++;
         });
         updateAppointmentChart(counts);
+    }, (err) => {
+        console.warn('Appointments stats listener error (may be offline):', err.code);
     });
 }
 
@@ -404,6 +408,8 @@ function initRealtimeListeners() {
                 <span class="diag-count" style="font-weight: 600; font-size: 0.85rem; color: var(--text-muted);">${count} Cases</span>
             </li>
         `).join('');
+    }, (err) => {
+        console.warn('Diagnosis logs listener error (may be offline):', err.code);
     });
 }
 
@@ -1257,7 +1263,7 @@ onAuthStateChanged(auth, async (user) => {
     initializeCharts();
     populateProfile(user.uid, userData);
 
-    await Promise.all([
+    await Promise.allSettled([
         fetchDashboardStats(),
         initRealtimeListeners(),
         renderStaffTable('doctors'),
