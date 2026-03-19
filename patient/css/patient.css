@@ -1,5 +1,4 @@
-/* Patient Dashboard — imports shared base, then applies patient-specific overrides */
-@import url('../../css/base-dashboard.css');
+/* Patient Dashboard — patient-specific overrides */
 
 /* Patient uses Indigo primary */
 :root {

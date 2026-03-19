@@ -1,5 +1,4 @@
-/* Receptionist Dashboard — imports shared base, then applies reception-specific overrides */
-@import url('../../css/base-dashboard.css');
+/* Receptionist Dashboard — reception-specific overrides */
 
 /* Reception uses Teal/Cyan primary */
 :root {
