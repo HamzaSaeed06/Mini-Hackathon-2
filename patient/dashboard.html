@@ -254,7 +254,7 @@
                                         required></select>
                                 </div>
                             </div>
-                            <div class="form-grid" style="margin-bottom: 2rem;">
+                            <div class="form-grid" style="margin-bottom: 1.5rem;">
                                 <div class="form-group">
                                     <label class="form-label"><i data-lucide="calendar" class="input-icon"></i> Appointment Date</label>
                                     <input type="date" id="appt-date" class="form-input" required>
@@ -265,6 +265,13 @@
                                     <input type="time" id="appt-time" class="form-input" required>
                                 </div>
                             </div>
+
+                            <div class="form-group" style="margin-bottom: 2rem;">
+                                <label class="form-label"><i data-lucide="clipboard-list" class="input-icon"></i> Chief Complaint / Reason for Visit</label>
+                                <textarea id="appt-complaint" class="form-input" rows="2" placeholder="e.g. Fever since 2 days, headache, sore throat..." style="resize: vertical; min-height: 60px;"></textarea>
+                                <p class="form-hint">Describe your symptoms briefly so the doctor can prepare.</p>
+                            </div>
+
                             <button type="submit" class="btn btn-primary" style="width: 100%;">
                                 <i data-lucide="calendar-check"></i> Request Appointment Slot
                             </button>

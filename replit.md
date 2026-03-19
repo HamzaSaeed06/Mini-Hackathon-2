@@ -34,7 +34,47 @@ Firebase credentials are in `js/firebase-config.js`. Update with your Firebase p
 
 ## Key Features & Changes (Latest)
 
-### Bug Fixes Applied (March 2026)
+### Production Fixes Applied (March 2026 — Complete Rebuild Pass)
+
+**T001 — Forgot Password (js/auth.js)**
+- Firebase Email Enumeration Protection means `auth/user-not-found` is never thrown anymore
+- Fixed: `sendPasswordResetEmail` always shows a generic success message: "If this email is registered, a reset link has been sent. Check inbox and spam folder."
+- Removed dead `auth/user-not-found` handler; added `auth/network-request-failed` handler
+
+**T002 — Chief Complaint Field Added Everywhere**
+- `reception/dashboard.html`: Added "Chief Complaint / Reason for Visit" textarea in book-appointment form
+- `patient/dashboard.html`: Added "Chief Complaint / Reason for Visit" textarea in book-now form
+- All appointments now store `complaint` field in Firestore
+
+**T003 — Doctor Dashboard Fixes (doctor/js/doctor.js, doctor/dashboard.html)**
+- Fixed date display bug: `'YYYY-MM-DD'` strings now properly formatted (was showing raw ISO string)
+- Used local-time constructor `new Date(y, m-1, d)` to prevent UTC off-by-one date errors
+- Appointment table now shows complaint as a red italic line under date/time
+- Appointment cards show complaint as a red row with clipboard icon
+- Patient name in `openDiagnosis` now has quotes escaped (prevents JS syntax errors for names with apostrophes)
+- Diagnosis modal "Attend Patient" strip now shows Chief Complaint in a highlighted red box
+- `finding-text` textarea is pre-filled with "Chief Complaint: ..." when doctor opens modal (speeds up workflow)
+- Removed "Email" as a separate table column; email now appears as sub-text in Patient cell
+- Table `colspan` corrected to 4 (was 5)
+
+**T004 — Patient Self-Booking Fixes (patient/js/patient.js)**
+- Self-booked appointments now include `patientEmail: auth.currentUser.email` — fixes doctor's email display
+- Added `bookedBy: 'patient'` field for tracking
+- Complaint field wired to the new textarea
+
+**T005 — Receptionist Appointment Booking Fixes (reception/js/reception.js)**
+- Removed `where('status', '==', 'active')` filter from doctor dropdown query — doctors added before the `status` field was introduced are now visible
+- `complaint` from the textarea is saved to the appointment
+- Added `bookedBy: 'receptionist'` field for tracking
+
+**T006 — Admin Dashboard Improvements (admin/dashboard.html, admin/js/admin.js)**
+- Added show/hide password toggle to Temp Password field in Add Staff modal
+- Credentials box (email + password) is shown inside the modal after successful staff creation so admin can copy and share
+- Credentials box is cleared/hidden every time the modal re-opens
+- Fixed `parseInt(...) || 0` for `experience` field to prevent `NaN` being saved to Firestore
+- Added explicit password length validation before submission
+
+### Previous Bug Fixes Applied (March 2026)
 - **Dashboard Layout Fix:** Doctor, Patient, Reception dashboards had `<body class="bg-light-blue">` instead of `<body class="dashboard-layout bg-light-blue">` — this was breaking sidebar/content layout for all three portals
 - **Firebase Offline Persistence:** `js/firebase-config.js` updated to use `initializeFirestore` with `persistentLocalCache` + `persistentMultipleTabManager` for IndexedDB offline caching — eliminates "client is offline" errors when Firestore WebSocket is slow
 - **Network Status Banner:** Added automatic offline/online status indicator banner via firebase-config.js — shows yellow warning when offline, green success when reconnected

@@ -471,8 +471,8 @@ async function populateDropdowns() {
         console.warn('Patient dropdown listener error (may be offline):', err.code);
     });
 
-    // Load Doctors (Active only)
-    onSnapshot(query(collection(db, 'users'), where('role', '==', 'doctor'), where('status', '==', 'active')), (snap) => {
+    // Load Doctors (all with role=doctor, no status filter to avoid missing newly created accounts)
+    onSnapshot(query(collection(db, 'users'), where('role', '==', 'doctor')), (snap) => {
         const doctors = [];
         snap.forEach(d => {
             const data = d.data();
@@ -606,6 +606,7 @@ if (bookForm) {
         const doctorEl = document.getElementById('select-doctor');
         const date = document.getElementById('appointment-date').value;
         const time = document.getElementById('appointment-time').value;
+        const complaint = (document.getElementById('appointment-complaint')?.value || '').trim();
 
         if (!date) { showToast('Please select an appointment date.', 'warning'); return; }
 
@@ -649,8 +650,10 @@ if (bookForm) {
                 doctorPhotoURL: doctorPhotoURL || '',
                 date,
                 time,
+                complaint: complaint || '',
                 shift: getShiftFromTime(time, clinicShiftMode),
                 status: 'pending',
+                bookedBy: 'receptionist',
                 createdAt: serverTimestamp()
             });
 

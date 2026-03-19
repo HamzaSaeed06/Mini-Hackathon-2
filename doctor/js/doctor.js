@@ -318,7 +318,7 @@ function renderApptPage() {
     if (!tableBody || !cardGrid) return;
 
     if (allAppointments.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="5" class="empty-state">No appointments found.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="4" class="empty-state">No appointments found.</td></tr>';
         cardGrid.innerHTML = `
             <div class="empty-state-card v-excellence">
                 <i data-lucide="calendar-x" style="width: 48px; height: 48px; color: var(--text-muted); margin-bottom: 1rem;"></i>
@@ -338,13 +338,26 @@ function renderApptPage() {
 
     paginatedItems.forEach(data => {
         const pName = data.patientName || 'Patient';
-        // Fallback: Fetch email from patient cache if missing
+        // patientEmail is stored directly in appointment (both receptionist-booked and self-booked)
         const pEmail = data.patientEmail || historyDataCache.find(pt => pt.id === data.patientId)?.email || '—';
-        
-        // Robust Date Parser
-        const displayDate = data.date?.toDate ? data.date.toDate().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : (data.date || 'No Date');
+
+        // Robust Date Formatter: handles both 'YYYY-MM-DD' strings and Firestore Timestamps
+        let displayDate = 'No Date';
+        if (data.date) {
+            if (data.date.toDate) {
+                // Firestore Timestamp
+                displayDate = data.date.toDate().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
+            } else if (typeof data.date === 'string' && data.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                // 'YYYY-MM-DD' string — parse with local time to avoid UTC-offset off-by-one
+                const [y, m, d] = data.date.split('-').map(Number);
+                displayDate = new Date(y, m - 1, d).toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
+            } else {
+                displayDate = data.date;
+            }
+        }
         const displayTime = data.time || '—';
-        
+        const complaint = data.complaint ? data.complaint : null;
+
         tableHtml += `
             <tr class="admin-table-row">
                 <td>
@@ -352,12 +365,14 @@ function renderApptPage() {
                         ${getAvatarHTML({ name: pName, uid: data.patientId, photoURL: data.patientPhotoURL })}
                         <div class="user-details">
                             <span class="user-name-text">${pName}</span>
-                            <span class="user-email-subtext">${data.patientId ? `ID: ${data.patientId.substring(0, 8)}...` : '—'}</span>
+                            <span class="user-email-subtext">${pEmail}</span>
                         </div>
                     </div>
                 </td>
-                <td class="table-cell-muted">${pEmail}</td>
-                <td class="table-cell-muted">${displayDate} · ${displayTime}</td>
+                <td class="table-cell-muted">
+                    <div>${displayDate} · ${displayTime}</div>
+                    ${complaint ? `<div style="font-size:0.75rem;color:#DC2626;margin-top:2px;font-style:italic;">⚕ ${complaint}</div>` : ''}
+                </td>
                 <td>
                     <span class="status-indicator-pill ${data.status || 'pending'}">
                         <span class="status-dot-indicator"></span>
@@ -365,7 +380,7 @@ function renderApptPage() {
                     </span>
                 </td>
                 <td class="table-actions-cell">
-                    <button class="btn-doctor-action" onclick="openDiagnosis('${data.id}', '${pName}')" title="Attend Patient">
+                    <button class="btn-doctor-action" onclick="openDiagnosis('${data.id}', '${pName.replace(/'/g, "\\'")}')" title="Attend Patient">
                         <i data-lucide="stethoscope"></i>
                         <span>Attend</span>
                     </button>
@@ -394,9 +409,13 @@ function renderApptPage() {
                         <i data-lucide="calendar"></i>
                         <span>${displayDate} · ${displayTime}</span>
                     </div>
+                    ${complaint ? `<div class="staff-detail-row" style="color:#DC2626;">
+                        <i data-lucide="clipboard-list"></i>
+                        <span style="font-style:italic;">${complaint}</span>
+                    </div>` : ''}
                 </div>
                 <div class="staff-card-footer">
-                    <button class="btn btn-primary btn-full" onclick="openDiagnosis('${data.id}', '${pName}')">
+                    <button class="btn btn-primary btn-full" onclick="openDiagnosis('${data.id}', '${pName.replace(/'/g, "\\'")}')">
                         <i data-lucide="stethoscope"></i> Attend Patient
                     </button>
                 </div>
@@ -528,10 +547,33 @@ window.openDiagnosis = async (apptId, patientName) => {
                 demog.textContent = `${age} / ${gender}`;
             }
             if (apptDate) {
-                const dateStr = appt.date
-                    ? new Date(appt.date + 'T00:00:00').toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' })
-                    : 'N/A';
+                let dateStr = 'N/A';
+                if (appt.date) {
+                    if (appt.date.toDate) {
+                        dateStr = appt.date.toDate().toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
+                    } else if (typeof appt.date === 'string' && appt.date.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                        const [y, mo, d] = appt.date.split('-').map(Number);
+                        dateStr = new Date(y, mo - 1, d).toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
+                    } else {
+                        dateStr = appt.date;
+                    }
+                }
                 apptDate.textContent = `${dateStr}${appt.time ? ' at ' + appt.time : ''}`;
+            }
+
+            // Show chief complaint in modal if present
+            const complaintRow = document.getElementById('modal-complaint-row');
+            const complaintText = document.getElementById('modal-complaint-text');
+            if (appt.complaint && appt.complaint.trim()) {
+                if (complaintText) complaintText.textContent = appt.complaint;
+                if (complaintRow) complaintRow.style.display = 'block';
+                // Pre-fill the findings textarea with complaint to speed up doctor workflow
+                const findingEl = document.getElementById('finding-text');
+                if (findingEl && !findingEl.value) {
+                    findingEl.value = `Chief Complaint: ${appt.complaint}`;
+                }
+            } else {
+                if (complaintRow) complaintRow.style.display = 'none';
             }
 
             if (strip) strip.style.display = 'block';

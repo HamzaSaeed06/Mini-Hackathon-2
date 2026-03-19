@@ -195,17 +195,21 @@ window.sendPasswordReset = async () => {
 
     try {
         await sendPasswordResetEmail(auth, email);
-        showToast('Password reset email sent! Check your inbox.', 'success');
+        // Firebase Email Enumeration Protection: sendPasswordResetEmail always
+        // succeeds silently — it sends email only for registered accounts but
+        // never reveals whether the address is registered or not. Always show
+        // a generic success + spam guidance so the UX is correct either way.
+        showToast('If this email is registered, a reset link has been sent. Check your inbox and spam folder.', 'success');
         window.closeForgotPassword();
         resetEmailInput.value = '';
     } catch (error) {
-        let msg = 'Failed to send reset email.';
-        if (error.code === 'auth/user-not-found') {
-            msg = 'No account found with this email address.';
-        } else if (error.code === 'auth/invalid-email') {
+        let msg = 'Failed to send reset email. Please try again.';
+        if (error.code === 'auth/invalid-email') {
             msg = 'Invalid email address format.';
         } else if (error.code === 'auth/too-many-requests') {
-            msg = 'Too many requests. Please wait before trying again.';
+            msg = 'Too many requests. Please wait a few minutes before trying again.';
+        } else if (error.code === 'auth/network-request-failed') {
+            msg = 'Network error. Check your internet connection and try again.';
         }
         showToast(msg, 'error');
     } finally {

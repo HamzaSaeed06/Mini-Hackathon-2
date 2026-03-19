@@ -274,6 +274,11 @@ window.openModal = (modalId, roleType = null) => {
         document.getElementById('modal-staff-title').textContent =
             'Add New ' + roleType.charAt(0).toUpperCase() + roleType.slice(1);
         document.getElementById('staff-role-input').value = roleType;
+
+        // Reset form and hide credentials box each time modal opens
+        document.getElementById('add-staff-form')?.reset();
+        const credBox = document.getElementById('staff-credentials-box');
+        if (credBox) credBox.style.display = 'none';
         
         // Show/hide doctor specific fields
         const doctorFields = document.getElementById('doctor-fields');
@@ -718,13 +723,14 @@ window.submitAddStaff = async () => {
     
     // New Fields
     const gender = document.getElementById('staff-gender').value;
-    const age = parseInt(document.getElementById('staff-age').value);
-    const experience = parseInt(document.getElementById('staff-experience').value);
+    const age = parseInt(document.getElementById('staff-age').value) || 0;
+    const experience = parseInt(document.getElementById('staff-experience').value) || 0;
     const degree = document.getElementById('staff-degree').value.trim();
     const specialization = document.getElementById('staff-specialization').value.trim();
 
     if (!name || !email || !password || !role || !gender || !age) return showToast('Please fill all basic fields', 'error');
-    if (role === 'doctor' && (!degree || !specialization)) return showToast('Please fill doctor qualification fields', 'error');
+    if (password.length < 8) return showToast('Password must be at least 8 characters.', 'error');
+    if (role === 'doctor' && (!degree || !specialization)) return showToast('Please fill doctor qualification fields.', 'error');
 
     const btn = document.getElementById('submit-staff-btn');
     const btnText = btn.querySelector('.btn-text');
@@ -757,8 +763,20 @@ window.submitAddStaff = async () => {
             createdBy: auth.currentUser?.uid || 'admin'
         });
 
-        showToast(`${role[0].toUpperCase() + role.slice(1)} account created successfully!`, 'success');
-        closeModal('add-staff-modal');
+        // Show credentials box inside the modal so admin can copy & share
+        const credBox = document.getElementById('staff-credentials-box');
+        if (credBox) {
+            const scEmail = document.getElementById('sc-email');
+            const scPassword = document.getElementById('sc-password');
+            if (scEmail) scEmail.textContent = email;
+            if (scPassword) scPassword.textContent = password;
+            credBox.style.display = 'block';
+        }
+
+        showToast(`${role[0].toUpperCase() + role.slice(1)} account created! Share the credentials shown above.`, 'success');
+
+        // Reset form but keep modal open so admin can see credentials
+        document.getElementById('add-staff-form').reset();
 
         const tableType = role === 'doctor' ? 'doctors' : 'receptionists';
         renderStaffTable(tableType);

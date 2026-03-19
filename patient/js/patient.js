@@ -544,6 +544,7 @@ if (bookForm) {
         const selectEl = document.getElementById('select-doctor');
         const date = document.getElementById('appt-date').value;
         const time = document.getElementById('appt-time').value;
+        const complaint = (document.getElementById('appt-complaint')?.value || '').trim();
 
         if (!selectEl.value || !date || !time) {
             showToast('Please select a doctor, date and time.', 'warning');
@@ -566,7 +567,6 @@ if (bookForm) {
                     where('date', '==', date)
                 );
                 const dbApptsSnap = await getDocs(dbApptsQuery);
-                // Exclude canceled/expired if needed, but here simple count
                 if (dbApptsSnap.size >= capacity) {
                     showToast(`Dr. ${doctorName} is fully booked for ${date}. Please select another date.`, 'warning', 5000);
                     return;
@@ -576,6 +576,7 @@ if (bookForm) {
             await addDoc(collection(db, 'appointments'), {
                 patientId: auth.currentUser.uid,
                 patientName: userData.name,
+                patientEmail: auth.currentUser.email || userData.email || '',
                 patientAge: userData.age || '—',
                 patientGender: userData.gender || '—',
                 patientPhotoURL: userData.photoURL || '',
@@ -584,7 +585,9 @@ if (bookForm) {
                 doctorPhotoURL: doctorPhotoURL || '',
                 date,
                 time,
+                complaint: complaint || '',
                 status: 'pending',
+                bookedBy: 'patient',
                 createdAt: serverTimestamp()
             });
 
