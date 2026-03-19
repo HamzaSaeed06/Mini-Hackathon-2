@@ -12,32 +12,54 @@ const passwordInput = document.getElementById('password');
 const loginBtn = document.getElementById('login-btn');
 const loginLoader = document.getElementById('login-loader');
 
+const _authToastMsgs = new Set();
+
+function _dismissAuthToast(toast) {
+    if (toast._dismissed) return;
+    toast._dismissed = true;
+    if (toast.dataset.msg) _authToastMsgs.delete(toast.dataset.msg);
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 400);
+}
+
 function showToast(message, type = 'success') {
+    // Deduplicate
+    if (_authToastMsgs.has(message)) return;
+
     const toastContainer = document.getElementById('toast-container');
     if (!toastContainer) return;
 
+    // Max 3 toasts
+    const existing = toastContainer.querySelectorAll('.toast');
+    if (existing.length >= 3) {
+        existing[0]._dismissed = true;
+        existing[0].classList.remove('show');
+        setTimeout(() => existing[0].remove(), 400);
+    }
+
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
+    toast.dataset.msg = message;
+    toast.style.cursor = 'pointer';
+    toast.title = 'Click to dismiss';
 
     const iconName = type === 'success' ? 'check-circle-2' : type === 'info' ? 'info' : 'alert-circle';
-
     toast.innerHTML = `
         <i data-lucide="${iconName}"></i>
         <span>${message}</span>
     `;
 
+    _authToastMsgs.add(message);
     toastContainer.appendChild(toast);
 
     if (typeof lucide !== 'undefined') {
         lucide.createIcons({ root: toast });
     }
 
-    setTimeout(() => toast.classList.add('show'), 10);
+    requestAnimationFrame(() => toast.classList.add('show'));
 
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 400);
-    }, 4000);
+    toast.addEventListener('click', () => _dismissAuthToast(toast));
+    setTimeout(() => _dismissAuthToast(toast), 4000);
 }
 
 onAuthStateChanged(auth, async (user) => {

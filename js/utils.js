@@ -4,13 +4,35 @@
  */
 
 // ── Toast Notifications ───────────────────────────────────────
+const TOAST_MAX   = 3;       // max visible toasts at once
+const TOAST_LIFE  = 4000;    // ms before auto-dismiss
+const _toastMsgs  = new Set(); // active message deduplication
+
+function _dismissToast(toast) {
+    if (toast._dismissed) return;
+    toast._dismissed = true;
+    const msg = toast.dataset.msg;
+    if (msg) _toastMsgs.delete(msg);
+    toast.classList.remove('show');
+    setTimeout(() => toast.remove(), 400);
+}
+
 export function showToast(message, type = 'success') {
+    // Deduplicate: if exact same message already on screen, skip
+    if (_toastMsgs.has(message)) return;
+
     let container = document.getElementById('toast-container');
     if (!container) {
         container = document.createElement('div');
         container.id = 'toast-container';
         container.className = 'toast-container';
         document.body.appendChild(container);
+    }
+
+    // Enforce max visible limit — remove oldest first
+    const existing = container.querySelectorAll('.toast');
+    if (existing.length >= TOAST_MAX) {
+        _dismissToast(existing[0]);
     }
 
     const iconMap = {
@@ -22,24 +44,31 @@ export function showToast(message, type = 'success') {
 
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
+    toast.dataset.msg = message;
+    toast.style.cursor = 'pointer';
+    toast.title = 'Click to dismiss';
     toast.innerHTML = `
         <i data-lucide="${iconMap[type] || 'info'}"></i>
         <span>${message}</span>
     `;
 
+    // Track message so duplicates are blocked while this toast is alive
+    _toastMsgs.add(message);
+
     container.appendChild(toast);
     if (typeof lucide !== 'undefined') lucide.createIcons({ root: toast });
 
-    // Premium Animation in
+    // Animate in
     requestAnimationFrame(() => {
         requestAnimationFrame(() => toast.classList.add('show'));
     });
 
-    // Auto-remove with transition
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 500);
-    }, 4000);
+    // Click to instantly dismiss
+    toast.addEventListener('click', () => _dismissToast(toast));
+
+    // Auto-dismiss after TOAST_LIFE ms
+    const timer = setTimeout(() => _dismissToast(toast), TOAST_LIFE);
+    toast._timer = timer;
 }
 
 // ── Custom Confirm Dialog ─────────────────────────────────────

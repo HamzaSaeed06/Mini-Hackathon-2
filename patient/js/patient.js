@@ -541,20 +541,31 @@ const bookForm = document.getElementById('book-form');
 if (bookForm) {
     bookForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+
+        const submitBtn = bookForm.querySelector('[type="submit"]');
+        if (submitBtn?.disabled) return; // Prevent double-submit
+
         const selectEl = document.getElementById('select-doctor');
         const date = document.getElementById('appt-date').value;
         const time = document.getElementById('appt-time').value;
         const complaint = (document.getElementById('appt-complaint')?.value || '').trim();
 
-        if (!selectEl.value || !date || !time) {
-            showToast('Please select a doctor, date and time.', 'warning');
-            return;
-        }
+        if (!selectEl.value) { showToast('Please select a doctor.', 'warning'); return; }
+        if (!date) { showToast('Please select an appointment date.', 'warning'); return; }
+        if (!time) { showToast('Please select an appointment time.', 'warning'); return; }
 
         // Get doctor name from the option's data-name attribute
         const doctorId = selectEl.value;
         const doctorName = selectEl.options[selectEl.selectedIndex].dataset.name;
         const doctorPhotoURL = selectEl.options[selectEl.selectedIndex].dataset.photoUrl;
+
+        // Lock button
+        const origHTML = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Booking...`;
+            if (window.lucide) lucide.createIcons();
+        }
 
         try {
             // Capacity Validation
@@ -568,7 +579,7 @@ if (bookForm) {
                 );
                 const dbApptsSnap = await getDocs(dbApptsQuery);
                 if (dbApptsSnap.size >= capacity) {
-                    showToast(`Dr. ${doctorName} is fully booked for ${date}. Please select another date.`, 'warning', 5000);
+                    showToast(`Dr. ${doctorName} is fully booked for ${date}. Please select another date.`, 'warning');
                     return;
                 }
             }
@@ -599,7 +610,13 @@ if (bookForm) {
             document.querySelector('[data-target="appointments-section"]').click();
         } catch (err) {
             console.error(err);
-            showToast('Failed to book appointment.', 'error');
+            showToast('Failed to book appointment. Please try again.', 'error');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origHTML;
+                if (window.lucide) lucide.createIcons();
+            }
         }
     });
 }
