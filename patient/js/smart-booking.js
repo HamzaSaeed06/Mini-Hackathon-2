@@ -57,6 +57,7 @@ class SmartBookingSystem {
             this.bookedAppointments.clear();
             snapshot.forEach(doc => {
                 const appointment = doc.data();
+                if (appointment.status === 'cancelled') return;
                 const key = `${appointment.doctorId}-${appointment.date}-${appointment.time}`;
                 this.bookedAppointments.set(key, appointment);
             });
@@ -289,13 +290,19 @@ class SmartBookingSystem {
             const daySlots = this.getFilteredSlots(dayKey);
             
             return `
-                <div class="calendar-day" data-day="${dayKey}">
+                <div class="calendar-day ${daySlots.length === 0 ? 'empty-day' : ''}" data-day="${dayKey}">
                     <div class="day-header">
                         <h4>${day}</h4>
-                        <span class="slot-count">${daySlots.length} slots</span>
+                        <span class="slot-count">${daySlots.length} ${daySlots.length === 1 ? 'slot' : 'slots'}</span>
                     </div>
                     <div class="day-slots">
-                        ${daySlots.slice(0, 6).map(slot => this.renderSlotCard(slot)).join('')}
+                        ${daySlots.length > 0 
+                            ? daySlots.slice(0, 6).map(slot => this.renderSlotCard(slot)).join('')
+                            : `<div class="no-slots-day">
+                                 <i data-lucide="calendar-x"></i>
+                                 <span>No Sessions</span>
+                               </div>`
+                        }
                         ${daySlots.length > 6 ? `
                             <button class="btn btn-sm btn-outline show-more" onclick="smartBooking.showMoreSlots('${dayKey}')">
                                 +${daySlots.length - 6} more
@@ -314,13 +321,31 @@ class SmartBookingSystem {
         if (!listContainer) return;
 
         const allSlots = this.getAllFilteredSlots();
+        
+        if (allSlots.length === 0) {
+            const selectedDoctorId = document.getElementById('doctor-select')?.value;
+            const msg = selectedDoctorId 
+                ? `<strong>${this.getDoctorData(selectedDoctorId).name}</strong> has not scheduled any sessions for this period.`
+                : 'No doctors are currently available for the selected specialty or date.';
+            
+            listContainer.innerHTML = `
+                <div class="no-slots-container" style="text-align: center; padding: 3rem 1rem; color: var(--text-muted);">
+                    <i data-lucide="calendar-off" style="width: 48px; height: 48px; margin-bottom: 1rem; opacity: 0.5;"></i>
+                    <p class="no-slots" style="max-width: 320px; margin: 0 auto; line-height: 1.6; font-size: 0.95rem;">${msg}</p>
+                </div>
+            `;
+            if (window.lucide) lucide.createIcons({ root: listContainer });
+            return;
+        }
+
         const sortedSlots = allSlots.sort((a, b) => {
             if (a.time !== b.time) return a.time.localeCompare(b.time);
             return a.doctorName.localeCompare(b.doctorName);
         });
 
         const listHTML = sortedSlots.map(slot => this.renderSlotListItem(slot)).join('');
-        listContainer.innerHTML = listHTML || '<p class="no-slots">No available slots found for the selected criteria.</p>';
+        listContainer.innerHTML = listHTML;
+        if (window.lucide) lucide.createIcons({ root: listContainer });
     }
 
     renderSlotCard(slot) {
@@ -376,7 +401,7 @@ class SmartBookingSystem {
                     doctorName: doctorData.name,
                     specialty: doctorData.specialty || 'General Practice',
                     day: day.charAt(0).toUpperCase() + day.slice(1),
-                    isEarliest: this.isEarliestAvailable(slot.time)
+                    isEarliest: false // Default, will be set in getAllFilteredSlots
                 });
             });
         });
@@ -391,16 +416,29 @@ class SmartBookingSystem {
         days.forEach(day => {
             allSlots.push(...this.getFilteredSlots(day));
         });
+
+        // Mark the earliest slot across all days
+        if (allSlots.length > 0) {
+            const sorted = [...allSlots].sort((a, b) => a.time.localeCompare(b.time));
+            const earliestTime = sorted[0].time;
+            allSlots.forEach(slot => {
+                slot.isEarliest = (slot.time === earliestTime);
+            });
+        }
         
         return allSlots;
     }
 
     matchesFilters(slot) {
-        const specialty = document.getElementById('specialty-select')?.value;
+        const specialty = document.getElementById('specialty-select')?.value?.toLowerCase();
         const doctor = document.getElementById('doctor-select')?.value;
         
-        if (specialty && slot.specialty.toLowerCase() !== specialty.toLowerCase()) {
-            return false;
+        if (specialty) {
+            const slotSpecialty = slot.specialty.toLowerCase();
+            // Match "general" with "general practice" or "general physician"
+            if (!slotSpecialty.includes(specialty)) {
+                return false;
+            }
         }
         
         if (doctor && slot.doctorId !== doctor) {
@@ -410,9 +448,9 @@ class SmartBookingSystem {
         return true;
     }
 
-    isEarliestAvailable(time) {
-        const allTimes = this.getAllFilteredSlots().map(slot => slot.time);
-        const sortedTimes = allTimes.sort();
+    isEarliestAvailable(time, allSlots) {
+        if (!allSlots || allSlots.length === 0) return false;
+        const sortedTimes = allSlots.map(s => s.time).sort();
         return sortedTimes[0] === time;
     }
 
@@ -421,11 +459,16 @@ class SmartBookingSystem {
         if (!recommendationContainer) return;
 
         const allSlots = this.getAllFilteredSlots();
+        if (allSlots.length === 0) {
+            recommendationContainer.innerHTML = '';
+            return;
+        }
+
         const earliestSlots = allSlots.filter(slot => slot.isEarliest).slice(0, 3);
         const highEnergySlots = allSlots.filter(slot => slot.energyLevel === 'High').slice(0, 3);
 
         const recommendationsHTML = `
-            <div class="recommendation-section">
+            <div class="recommendation-section" style="animation: fadeIn 0.5s ease-out;">
                 <h4>Smart Recommendations</h4>
                 <div class="recommendation-tabs">
                     <button class="tab-btn active" onclick="smartBooking.showRecommendation('earliest')">Earliest Available</button>
@@ -433,16 +476,17 @@ class SmartBookingSystem {
                 </div>
                 <div class="recommendation-content">
                     <div class="recommendation-list" id="earliest-rec">
-                        ${earliestSlots.map(slot => this.renderRecommendationCard(slot, 'earliest')).join('')}
+                        ${earliestSlots.length > 0 ? earliestSlots.map(slot => this.renderRecommendationCard(slot, 'earliest')).join('') : '<p class="text-muted" style="padding: 1rem; font-size: 0.85rem;">No early sessions found.</p>'}
                     </div>
                     <div class="recommendation-list hidden" id="energy-rec">
-                        ${highEnergySlots.map(slot => this.renderRecommendationCard(slot, 'energy')).join('')}
+                        ${highEnergySlots.length > 0 ? highEnergySlots.map(slot => this.renderRecommendationCard(slot, 'energy')).join('') : '<p class="text-muted" style="padding: 1rem; font-size: 0.85rem;">No high-energy sessions found.</p>'}
                     </div>
                 </div>
             </div>
         `;
 
         recommendationContainer.innerHTML = recommendationsHTML;
+        if (window.lucide) lucide.createIcons({ root: recommendationContainer });
     }
 
     renderRecommendationCard(slot, type) {

@@ -487,94 +487,75 @@ class CommandCenter {
         if (!commandCenterSection) return;
 
         commandCenterSection.innerHTML = `
-            <div class="command-center">
-                <div class="command-header">
-                    <h2>Traffic Control Center</h2>
-                    <div class="live-indicator">
-                        <span class="live-dot"></span>
-                        <span>LIVE</span>
+            <div class="command-center-v2">
+                <div class="command-header-panel glass-panel">
+                    <div style="display:flex; align-items:center; gap:1rem;">
+                        <div class="command-logo">
+                            <i data-lucide="shield-activity" style="width:24px; color:white;"></i>
+                        </div>
+                        <div>
+                            <h2 style="margin:0; font-family:'Outfit';">Traffic Control Center</h2>
+                            <p style="margin:0; font-size:0.8rem; color:var(--text-muted);">Real-time Clinic Operations Monitor</p>
+                        </div>
+                    </div>
+                    <div class="live-status-badge">
+                        <span class="pulse-dot"></span>
+                        LIVE SYNC
                     </div>
                 </div>
 
-                <div class="command-stats">
-                    <div class="stat-card critical">
-                        <span class="stat-value" id="critical-alerts">0</span>
-                        <span class="stat-label">Critical</span>
+                <div class="command-stats-v2">
+                    <div class="cmd-stat-card critical">
+                        <div class="mini-label">CRITICAL</div>
+                        <div class="stat-main">
+                            <span id="critical-alerts">0</span>
+                            <i data-lucide="alert-circle"></i>
+                        </div>
                     </div>
-                    <div class="stat-card high">
-                        <span class="stat-value" id="high-alerts">0</span>
-                        <span class="stat-label">High Priority</span>
+                    <div class="cmd-stat-card warning">
+                        <div class="mini-label">HIGH PRIORITY</div>
+                        <div class="stat-main">
+                            <span id="high-alerts">0</span>
+                            <i data-lucide="zap"></i>
+                        </div>
                     </div>
-                    <div class="stat-card medium">
-                        <span class="stat-value" id="medium-alerts">0</span>
-                        <span class="stat-label">Medium</span>
-                    </div>
-                    <div class="stat-card total">
-                        <span class="stat-value" id="total-appointments">0</span>
-                        <span class="stat-label">Total Appointments</span>
+                    <div class="cmd-stat-card info">
+                        <div class="mini-label">SYSTEM LOAD</div>
+                        <div class="stat-main">
+                            <span id="total-appointments">0</span>
+                            <i data-lucide="bar-chart-3"></i>
+                        </div>
                     </div>
                 </div>
 
-                <div class="command-content">
-                    <div class="alerts-panel">
-                        <div class="panel-header">
-                            <h3>Active Alerts</h3>
-                            <div class="panel-actions">
-                                <button class="btn btn-sm btn-outline" onclick="commandCenter.acknowledgeAllAlerts()">
-                                    <i data-lucide="check-all"></i> Acknowledge All
-                                </button>
-                                <button class="btn btn-sm btn-outline" onclick="commandCenter.clearResolvedAlerts()">
-                                    <i data-lucide="trash-2"></i> Clear Resolved
-                                </button>
-                            </div>
+                <div class="command-grid-v2">
+                    <div class="alerts-column">
+                        <div class="panel-v2-header">
+                            <h3><i data-lucide="bell-ring"></i> Active Alerts</h3>
+                            <button class="btn-text-sm" onclick="commandCenter.clearResolvedAlerts()">Clear All</button>
                         </div>
-                        <div class="alerts-container" id="alerts-list">
-                            <!-- Alerts will be rendered here -->
+                        <div id="alerts-list" class="alerts-v2-container">
+                            <p class="empty-state-v2">No active alerts detected</p>
                         </div>
                     </div>
 
-                    <div class="appointments-panel">
-                        <div class="panel-header">
-                            <h3>Real-time Appointments</h3>
-                            <div class="filter-controls">
-                                <select id="status-filter" class="form-select" onchange="commandCenter.filterAppointments()">
-                                    <option value="">All Status</option>
-                                    <option value="confirmed">Confirmed</option>
-                                    <option value="in-progress">In Progress</option>
-                                    <option value="completed">Completed</option>
-                                    <option value="cancelled">Cancelled</option>
-                                </select>
+                    <div class="system-flow-column">
+                        <div class="panel-v2-header">
+                            <h3><i data-lucide="move"></i> System Traffic Flow</h3>
+                            <div class="filter-chip-group">
+                                <span class="filter-chip active" onclick="commandCenter.filterTable('all')">All</span>
+                                <span class="filter-chip" onclick="commandCenter.filterTable('in-progress')">Active</span>
+                                <span class="filter-chip" onclick="commandCenter.filterTable('pending')">Queue</span>
                             </div>
                         </div>
-                        <div class="appointments-container" id="appointments-list">
+                        <div id="appointments-list" class="traffic-flow-container">
                             <!-- Appointments will be rendered here -->
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bulk-actions-panel">
-                    <h3>Bulk Actions</h3>
-                    <div class="bulk-actions">
-                        <div class="action-group">
-                            <label>Select Doctor:</label>
-                            <select id="bulk-doctor-select" class="form-select">
-                                <option value="">Choose doctor...</option>
-                            </select>
-                            <button class="btn btn-danger" onclick="commandCenter.bulkReassignSelectedDoctor()">
-                                <i data-lucide="refresh-cw"></i> Pulse Reassign All
-                            </button>
-                        </div>
-                        <div class="action-group">
-                            <button class="btn btn-secondary" onclick="commandCenter.sendBulkNotifications()">
-                                <i data-lucide="send"></i> Send Bulk Notifications
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         `;
 
-        this.loadDoctorOptions();
         this.updateDashboard();
         if (window.lucide) lucide.createIcons();
     }
@@ -702,43 +683,24 @@ class CommandCenter {
         }
     }
 
-    filterAppointments() {
-        this.renderAppointments();
-    }
-
-    async acknowledgeAllAlerts() {
-        this.alerts.forEach(alert => {
-            alert.acknowledged = true;
-        });
-        this.updateAlertsList();
-        showToast('All alerts acknowledged', 'success');
-    }
-
-    clearResolvedAlerts() {
-        const unresolvedAlerts = new Map();
-        this.alerts.forEach((alert, id) => {
-            if (!alert.acknowledged) {
-                unresolvedAlerts.set(id, alert);
+    filterTable(status) {
+        // Update chip UI
+        document.querySelectorAll('.filter-chip').forEach(chip => {
+            chip.classList.remove('active');
+            if (chip.textContent.toLowerCase() === status.toLowerCase() || (status === 'all' && chip.textContent.toLowerCase() === 'all')) {
+                chip.classList.add('active');
             }
         });
-        this.alerts = unresolvedAlerts;
-        this.updateAlertsList();
-        showToast('Resolved alerts cleared', 'success');
-    }
 
-    async bulkReassignSelectedDoctor() {
-        const doctorId = document.getElementById('bulk-doctor-select').value;
-        if (!doctorId) {
-            showToast('Please select a doctor first', 'error');
-            return;
-        }
+        const appointmentsContainer = document.getElementById('appointments-list');
+        if (!appointmentsContainer) return;
 
-        await this.bulkReassignDoctorAppointments(doctorId);
-    }
+        const filtered = Array.from(this.appointments.values())
+            .filter(apt => status === 'all' || apt.status === status)
+            .sort((a, b) => new Date(`${a.date} ${a.time}`) - new Date(`${b.date} ${b.time}`));
 
-    async sendBulkNotifications() {
-        // Implementation for sending bulk notifications
-        showToast('Bulk notifications sent', 'success');
+        appointmentsContainer.innerHTML = filtered.map(appointment => this.renderAppointmentCard(appointment)).join('') || '<p class="empty-state-v2">No appointments matching filter</p>';
+        if (window.lucide) lucide.createIcons();
     }
 }
 

@@ -58,10 +58,10 @@ export function showToast(message, type = 'success') {
     container.appendChild(toast);
     if (typeof lucide !== 'undefined') lucide.createIcons({ root: toast });
 
-    // Animate in
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => toast.classList.add('show'));
-    });
+    // Animate in (using a small timeout for reliability)
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 20);
 
     // Click to instantly dismiss
     toast.addEventListener('click', () => _dismissToast(toast));

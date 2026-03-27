@@ -14,6 +14,7 @@ import {
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 import { auth, db } from "../../js/firebase-config.js";
 import { initCustomSelect } from '../../js/dropdown.js';
+import { schedulingEngine } from '../../js/scheduling-engine.js';
 
 // ── DOM refs ──────────────────────────────────────────────────
 const displayName = document.getElementById('display-name');
@@ -55,8 +56,6 @@ onAuthStateChanged(auth, async (user) => {
 
     userData = snap.data();
     
-    // Deterministic palette handled by utils now
-
     if (displayName) displayName.textContent = userData.name || 'Receptionist';
     if (userAvatar) {
         const { html, style, classes } = getAvatarConfig(userData);
@@ -75,6 +74,7 @@ onAuthStateChanged(auth, async (user) => {
     loadPatientDirectory();
     loadDoctorDirectory();
     loadClinicSettings();
+    startTrafficControl(); // Start the live traffic monitor
     
     // Add Search Listener
     document.getElementById('patient-search')?.addEventListener('input', (e) => {
@@ -84,9 +84,131 @@ onAuthStateChanged(auth, async (user) => {
         filterDoctorDirectory(e.target.value.toLowerCase());
     });
 
+    // Appointment Date Listener for Slot Picker
+    document.getElementById('appointment-date')?.addEventListener('change', () => {
+        updateSlotPicker();
+    });
 
     if (window.lucide) lucide.createIcons();
 });
+
+/**
+ * Live Traffic Control Monitoring
+ * Shows which doctor is currently seeing which patient.
+ */
+function startTrafficControl() {
+    const grid = document.getElementById('traffic-control-grid');
+    if (!grid) return;
+
+    // Listen to doctors
+    onSnapshot(query(collection(db, 'users'), where('role', '==', 'doctor')), (doctorSnap) => {
+        const doctors = [];
+        doctorSnap.forEach(d => doctors.push({ id: d.id, ...d.data() }));
+
+        // For each doctor, find their active consultation
+        onSnapshot(query(collection(db, 'appointments'), where('status', '==', 'in-consultation')), (apptSnap) => {
+            const activeAppts = {};
+            apptSnap.forEach(a => {
+                const data = a.data();
+                activeAppts[data.doctorId] = data;
+            });
+
+            renderTrafficControl(doctors, activeAppts);
+        });
+    });
+}
+
+function renderTrafficControl(doctors, activeAppts) {
+    const grid = document.getElementById('traffic-control-grid');
+    if (!grid) return;
+
+    const cards = doctors.map(doctor => {
+        const active = activeAppts[doctor.id];
+        const statusClass = doctor.status === 'online' ? (active ? 'busy' : 'online') : 'offline';
+        const statusText = doctor.status === 'online' ? (active ? 'IN CONSULTATION' : 'AVAILABLE') : 'OFF-DUTY';
+
+        return `
+            <div class="doctor-status-card">
+                <div class="doctor-status-header">
+                    <div style="display:flex; align-items:center; gap:0.75rem;">
+                        <div class="user-avatar-sm" style="width:36px; height:36px; border-radius:8px; overflow:hidden;">
+                            ${doctor.photoURL ? `<img src="${doctor.photoURL}" style="width:100%; height:100%; object-fit:cover;">` : `<div style="background:var(--primary-light); color:var(--primary); height:100%; display:flex; align-items:center; justify-content:center; font-weight:700;">${doctor.name[0]}</div>`}
+                        </div>
+                        <div>
+                            <div style="font-weight:700; font-size:0.9rem;">Dr. ${doctor.name}</div>
+                            <div style="font-size:0.75rem; color:var(--text-muted);">${doctor.specialization || 'General Physician'}</div>
+                        </div>
+                    </div>
+                    <span class="status-indicator status-${statusClass}">${statusText}</span>
+                </div>
+                <div style="padding:0.75rem; background:var(--background); border-radius:8px; font-size:0.8rem;">
+                    ${active ? `
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:var(--text-muted);">Current Patient:</span>
+                            <span style="font-weight:600; color:var(--primary);">${active.patientName}</span>
+                        </div>
+                    ` : `
+                        <div style="text-align:center; color:var(--text-muted); font-style:italic;">No active consultation</div>
+                    `}
+                </div>
+            </div>
+        `;
+    });
+
+    grid.innerHTML = cards.join('');
+    if (window.lucide) lucide.createIcons();
+}
+
+/**
+ * Smart Slot Picker
+ */
+async function updateSlotPicker() {
+    const container = document.getElementById('slot-picker-container');
+    const doctorId = document.getElementById('select-doctor')?.value;
+    const date = document.getElementById('appointment-date')?.value;
+    const timeInput = document.getElementById('appointment-time');
+
+    if (!container || !doctorId || !date) return;
+
+    container.innerHTML = `<div class="skeleton" style="height:40px; border-radius:8px; grid-column:1/-1;"></div>`;
+
+    try {
+        const slots = await schedulingEngine.getAvailableSlots(doctorId, date);
+        if (slots.length === 0) {
+            container.innerHTML = `<p class="text-muted" style="font-size: 0.8rem; grid-column: 1/-1;">No availability for this date. Try another day.</p>`;
+            return;
+        }
+
+        container.innerHTML = slots.map(slot => `
+            <div class="slot-btn ${slot.available ? '' : 'disabled'}" 
+                 data-time="${slot.time}" 
+                 onclick="${slot.available ? `selectSlot('${slot.time}')` : ''}">
+                ${slot.time}
+            </div>
+        `).join('');
+
+        // Pre-select current time if it's in the list and available (for rescheduling)
+        if (timeInput.value) {
+            const currentSlot = container.querySelector(`[data-time="${timeInput.value}"]`);
+            if (currentSlot && !currentSlot.classList.contains('disabled')) {
+                currentSlot.classList.add('selected');
+            }
+        }
+
+    } catch (err) {
+        console.error('Slot picker error:', err);
+        container.innerHTML = `<p class="danger" style="font-size: 0.8rem; grid-column: 1/-1;">Failed to load slots.</p>`;
+    }
+}
+
+window.selectSlot = (time) => {
+    document.querySelectorAll('.slot-btn').forEach(btn => btn.classList.remove('selected'));
+    const selectedBtn = document.querySelector(`.slot-btn[data-time="${time}"]`);
+    if (selectedBtn) selectedBtn.classList.add('selected');
+    
+    const timeInput = document.getElementById('appointment-time');
+    if (timeInput) timeInput.value = time;
+};
 
 // â”€â”€ Photo Upload UX â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let pendingPhotoFile = null;
@@ -484,7 +606,9 @@ async function populateDropdowns() {
                 extra: { name: data.name, photoURL: data.photoURL || '' }
             });
         });
-        initCustomSelect('doctor-select-container', 'doctor-options-list', 'select-doctor', doctors);
+        initCustomSelect('doctor-select-container', 'doctor-options-list', 'select-doctor', doctors, () => {
+            updateSlotPicker();
+        });
     }, (err) => {
         console.warn('Doctor dropdown listener error (may be offline):', err.code);
     });

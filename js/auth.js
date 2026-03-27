@@ -4,7 +4,7 @@ import {
     onAuthStateChanged,
     sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const loginForm = document.getElementById('login-form');
 const emailInput = document.getElementById('email');
@@ -56,7 +56,9 @@ function showToast(message, type = 'success') {
         lucide.createIcons({ root: toast });
     }
 
-    requestAnimationFrame(() => toast.classList.add('show'));
+    setTimeout(() => {
+        toast.classList.add('show');
+    }, 50);
 
     toast.addEventListener('click', () => _dismissAuthToast(toast));
     setTimeout(() => _dismissAuthToast(toast), 4000);
@@ -175,27 +177,68 @@ function resetLoginButton() {
     loginBtn.disabled = false;
 }
 
-// ── Forgot Password Handler ──────────────────────────────────
+// â”€â”€ Forgot Password Handler â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+let resendCooldownTimer = null;
+let resendSecondsRemaining = 0;
+
 window.openForgotPassword = () => {
     const modal = document.getElementById('forgot-password-modal');
     if (modal) {
+        // Reset Cooldown if any
+        if (resendCooldownTimer) {
+            clearInterval(resendCooldownTimer);
+            resendCooldownTimer = null;
+        }
+        resendSecondsRemaining = 0;
+
+        // Reset UI to initial state
+        document.getElementById('forgot-initial-state').style.display = 'block';
+        document.getElementById('forgot-success-state').style.display = 'none';
+        
+        // Reset Buttons
+        const sendBtn = document.getElementById('send-reset-btn');
+        if (sendBtn) {
+            sendBtn.innerHTML = `<i data-lucide="send" style="width:15px;height:15px;"></i> Send Reset Link`;
+            sendBtn.disabled = false;
+        }
+
+        const resendBtn = document.getElementById('resend-reset-btn');
+        const resendBtnText = document.getElementById('resend-btn-text');
+        if (resendBtn && resendBtnText) {
+            resendBtn.disabled = false;
+            resendBtnText.textContent = "Resend Link";
+        }
+
         modal.classList.add('active');
+        
         const resetEmailInput = document.getElementById('reset-email');
         if (resetEmailInput && emailInput?.value) {
             resetEmailInput.value = emailInput.value;
         }
         if (resetEmailInput) resetEmailInput.focus();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 };
 
 window.closeForgotPassword = () => {
     const modal = document.getElementById('forgot-password-modal');
     if (modal) modal.classList.remove('active');
+    
+    // Clear timer when modal is closed
+    if (resendCooldownTimer) {
+        clearInterval(resendCooldownTimer);
+        resendCooldownTimer = null;
+    }
 };
 
-window.sendPasswordReset = async () => {
+/**
+ * Sends password reset email and manages UI states
+ * @param {boolean} isResend - Whether this is a resend attempt
+ */
+window.sendPasswordReset = async (isResend = false) => {
     const resetEmailInput = document.getElementById('reset-email');
-    const sendBtn = document.getElementById('send-reset-btn');
+    const sendBtn = document.getElementById(isResend ? 'resend-reset-btn' : 'send-reset-btn');
+    const resendBtnText = document.getElementById('resend-btn-text');
     
     if (!resetEmailInput) return;
     
@@ -211,34 +254,77 @@ window.sendPasswordReset = async () => {
         return;
     }
 
-    const originalText = sendBtn.innerHTML;
-    sendBtn.innerHTML = `<div class="loader-spinner" style="position:relative;left:auto;top:auto;margin:0;border-top-color:white;width:18px;height:18px;"></div> Sending...`;
+    // Handlers for loading states
+    const originalContent = sendBtn.innerHTML;
+    sendBtn.innerHTML = `<div class="loader-spinner" style="position:relative;left:auto;top:auto;margin:0;border-top-color:white;width:18px;height:18px;"></div> ${isResend ? 'Sending...' : 'Verifying...'}`;
     sendBtn.disabled = true;
 
     try {
+        // Step 1: Check if email exists in our records
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('email', '==', email));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+            showToast('This email is not registered in our system.', 'error');
+            sendBtn.innerHTML = originalContent;
+            sendBtn.disabled = false;
+            return;
+        }
+
+        // Step 2: Proceed with Firebase Password Reset
         await sendPasswordResetEmail(auth, email);
-        // Firebase Email Enumeration Protection: sendPasswordResetEmail always
-        // succeeds silently — it sends email only for registered accounts but
-        // never reveals whether the address is registered or not. Always show
-        // a generic success + spam guidance so the UX is correct either way.
-        showToast('If this email is registered, a reset link has been sent. Check your inbox and spam folder.', 'success');
-        window.closeForgotPassword();
-        resetEmailInput.value = '';
+        
+        // Switch to Success State
+        document.getElementById('forgot-initial-state').style.display = 'none';
+        document.getElementById('forgot-success-state').style.display = 'block';
+        document.getElementById('sent-email-display').textContent = email;
+        
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+        // Start Resend Cooldown
+        startResendCooldown();
+        
+        const resetMessage = isResend ? 'Reset email resent.' : 'Reset link sent to your registered email.';
+        showToast(resetMessage, 'success');
+
     } catch (error) {
+        console.error("Reset Error:", error);
         let msg = 'Failed to send reset email. Please try again.';
         if (error.code === 'auth/invalid-email') {
             msg = 'Invalid email address format.';
         } else if (error.code === 'auth/too-many-requests') {
-            msg = 'Too many requests. Please wait a few minutes before trying again.';
-        } else if (error.code === 'auth/network-request-failed') {
-            msg = 'Network error. Check your internet connection and try again.';
+            msg = 'Too many requests. Please wait a few minutes.';
         }
         showToast(msg, 'error');
-    } finally {
-        sendBtn.innerHTML = originalText;
+        sendBtn.innerHTML = originalContent;
         sendBtn.disabled = false;
     }
 };
+
+function startResendCooldown() {
+    const resendBtn = document.getElementById('resend-reset-btn');
+    const resendBtnText = document.getElementById('resend-btn-text');
+    
+    if (!resendBtn || !resendBtnText) return;
+
+    resendSecondsRemaining = 60;
+    resendBtn.disabled = true;
+    
+    if (resendCooldownTimer) clearInterval(resendCooldownTimer);
+
+    resendCooldownTimer = setInterval(() => {
+        resendSecondsRemaining--;
+        if (resendSecondsRemaining <= 0) {
+            clearInterval(resendCooldownTimer);
+            resendCooldownTimer = null;
+            resendBtn.disabled = false;
+            resendBtnText.textContent = "Resend Link";
+        } else {
+            resendBtnText.textContent = `Resend in ${resendSecondsRemaining}s`;
+        }
+    }, 1000);
+}
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {

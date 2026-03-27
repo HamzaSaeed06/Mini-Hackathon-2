@@ -18,6 +18,7 @@
     <link rel="stylesheet" href="../css/command-center.css">
     <link rel="stylesheet" href="../css/notifications.css">
     <link rel="stylesheet" href="../css/visual-excellence.css">
+    <link rel="stylesheet" href="./css/receptionist.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
@@ -141,6 +142,28 @@
                         </div>
                         <div class="metric-value" id="current-shift-display">Loading...</div>
                         <p class="text-muted" id="shift-hours-display" style="font-size: 0.75rem; margin-top: 0.25rem;">—</p>
+                    </div>
+                </div>
+
+                <!-- LIVE TRAFFIC CONTROL -->
+                <div class="glass-panel" style="margin-top: 2rem; padding: 1.5rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+                        <div style="display:flex; align-items:center; gap:0.75rem;">
+                            <div style="width:32px; height:32px; background:var(--primary-light); color:var(--primary); border-radius:8px; display:flex; align-items:center; justify-content:center;">
+                                <i data-lucide="activity" style="width:18px;"></i>
+                            </div>
+                            <h3 style="font-size:1.1rem; font-weight:700; margin:0;">Live Traffic Control</h3>
+                        </div>
+                        <div class="live-indicator">
+                            <span class="live-dot"></span>
+                            <span style="font-size: 0.75rem; font-weight: 600; color: var(--text-muted);">MONITORING LIVE</span>
+                        </div>
+                    </div>
+                    <div class="traffic-control-grid" id="traffic-control-grid">
+                        <!-- Injected via JS -->
+                        <div class="doctor-status-card skeleton" style="height: 120px;"></div>
+                        <div class="doctor-status-card skeleton" style="height: 120px;"></div>
+                        <div class="doctor-status-card skeleton" style="height: 120px;"></div>
                     </div>
                 </div>
 
@@ -324,9 +347,11 @@
                                     <input type="date" id="appointment-date" class="form-input" required>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label"><i data-lucide="clock" class="input-icon"></i> Appointment
-                                        Time</label>
-                                    <input type="time" id="appointment-time" class="form-input" required>
+                                    <label class="form-label"><i data-lucide="clock" class="input-icon"></i> Available Slots</label>
+                                    <div id="slot-picker-container" class="slot-picker-container">
+                                        <p class="text-muted" style="font-size: 0.8rem; grid-column: 1/-1;">Select doctor and date to see available slots.</p>
+                                    </div>
+                                    <input type="hidden" id="appointment-time" required>
                                 </div>
                             </div>
 

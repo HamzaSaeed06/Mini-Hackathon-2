@@ -126,7 +126,6 @@ async function handleActualUpload() {
         const data = await response.json();
         if (data.secure_url) {
             const photoURL = data.secure_url;
-            const { updateDoc, doc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
             await updateDoc(doc(db, 'users', auth.currentUser.uid), { photoURL });
             
             // Sync global state
@@ -380,7 +379,11 @@ function loadMyHistory(uid) {
         currentHistoryPage = 1;
         renderHistory();
     }, (err) => {
-        console.warn('Medical records listener error (may be offline):', err.code);
+        if (err.code === 'failed-precondition') {
+            console.warn('Medical records listener error: Missing composite index. Please click the link in the console to create it.');
+        } else {
+            console.warn('Medical records listener error (may be offline):', err.code);
+        }
         renderHistory();
     });
 }

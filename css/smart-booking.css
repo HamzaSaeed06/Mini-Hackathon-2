@@ -229,6 +229,8 @@
 .calendar-day {
     border-right: 1px solid var(--border);
     min-height: 200px;
+    display: flex;
+    flex-direction: column;
 }
 
 .calendar-day:last-child { border-right: none; }
@@ -257,6 +259,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.4rem;
+    max-height: 350px;
+    overflow-y: auto;
+    scrollbar-width: thin;
 }
 
 /* Slot Cards */
@@ -350,12 +355,53 @@
 
 .slot-action { margin-left: 1rem; flex-shrink: 0; }
 
-/* No Slots */
-.no-slots {
-    text-align: center;
-    padding: 2.5rem;
+/* No Slots / Empty States */
+.no-slots-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 0.5rem;
     color: var(--text-muted);
-    font-size: 0.9rem;
+    opacity: 0.6;
+    text-align: center;
+    gap: 0.5rem;
+}
+
+.no-slots-day i { width: 24px; height: 24px; stroke-width: 1.5; }
+.no-slots-day span { font-size: 0.75rem; font-weight: 500; }
+
+.calendar-day.empty-day { background: rgba(0,0,0,0.01); }
+
+.no-slots-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.no-slots-container i { 
+    color: var(--primary); 
+    opacity: 0.3; 
+    margin-bottom: 1.5rem; 
+}
+
+.no-slots {
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1.6;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+.no-slots strong { color: var(--text-main); }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Show More */
@@ -380,4 +426,6 @@
     .booking-filters { grid-template-columns: 1fr; }
     .recommendation-list { flex-direction: column; }
     .recommendation-card { max-width: none; }
+    .weekly-calendar { grid-template-columns: 1fr; }
+    .calendar-day { border-right: none; border-bottom: 1px solid var(--border); min-height: auto; }
 }

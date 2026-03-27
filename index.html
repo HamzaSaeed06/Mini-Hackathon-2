@@ -216,25 +216,52 @@
     <!-- Forgot Password Modal -->
     <div class="forgot-modal-overlay" id="forgot-password-modal" onclick="handleForgotOverlayClick(event)">
         <div class="forgot-modal-box">
-            <div class="forgot-modal-icon">
-                <i data-lucide="key-round" style="width:26px;height:26px;"></i>
-            </div>
-            <h3>Reset Your Password</h3>
-            <p>Enter your registered email address. We'll send you a link to reset your password right away.</p>
-            
-            <div class="form-group">
-                <label for="reset-email" class="form-label">
-                    <i data-lucide="mail" class="input-icon"></i> Email Address
-                </label>
-                <input type="email" id="reset-email" class="form-input" placeholder="name@clinic.com" autocomplete="email">
+            <!-- Initial State -->
+            <div id="forgot-initial-state">
+                <div class="forgot-modal-icon">
+                    <i data-lucide="key-round" style="width:26px;height:26px;"></i>
+                </div>
+                <h3>Reset Your Password</h3>
+                <p>Enter your registered email address. We'll send you a link to reset your password right away.</p>
+                
+                <div class="form-group">
+                    <label for="reset-email" class="form-label">
+                        <i data-lucide="mail" class="input-icon"></i> Email Address
+                    </label>
+                    <input type="email" id="reset-email" class="form-input" placeholder="name@clinic.com" autocomplete="email">
+                </div>
+
+                <div class="forgot-modal-actions">
+                    <button type="button" class="btn-cancel-reset" onclick="closeForgotPassword()">Cancel</button>
+                    <button type="button" id="send-reset-btn" onclick="sendPasswordReset()">
+                        <i data-lucide="send" style="width:15px;height:15px;"></i>
+                        Send Reset Link
+                    </button>
+                </div>
             </div>
 
-            <div class="forgot-modal-actions">
-                <button type="button" class="btn-cancel-reset" onclick="closeForgotPassword()">Cancel</button>
-                <button type="button" id="send-reset-btn" onclick="sendPasswordReset()">
-                    <i data-lucide="send" style="width:15px;height:15px;"></i>
-                    Send Reset Link
-                </button>
+            <!-- Success State -->
+            <div id="forgot-success-state" style="display:none; text-align:center;">
+                <div class="forgot-modal-icon" style="background:#F0FDF4; color:#10B981; margin: 0 auto 1.5rem auto;">
+                    <i data-lucide="mail-check" style="width:28px;height:28px;"></i>
+                </div>
+                <h3>Check Your Email</h3>
+                <p>We've sent a password reset link to <strong id="sent-email-display" style="color:#0F172A;"></strong>. Please check your inbox and your <strong>spam folder</strong>.</p>
+                
+                <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:1rem; margin-bottom:1.5rem; text-align:left;">
+                    <p style="font-size:0.8rem; margin:0; display:flex; gap:0.5rem; color:#64748B;">
+                        <i data-lucide="info" style="width:16px; flex-shrink:0;"></i>
+                        <span>If you don't receive the email within 2 minutes, check your spam or try resending.</span>
+                    </p>
+                </div>
+
+                <div class="forgot-modal-actions">
+                    <button type="button" class="btn-cancel-reset" onclick="closeForgotPassword()">Close</button>
+                    <button type="button" id="resend-reset-btn" onclick="sendPasswordReset(true)" class="btn-primary" style="flex:1.5; background:#2563EB; color:white; border:none; border-radius:8px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.5rem;">
+                        <i data-lucide="rotate-cw" style="width:15px;height:15px;"></i>
+                        <span id="resend-btn-text">Resend Link</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

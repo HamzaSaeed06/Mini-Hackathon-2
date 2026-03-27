@@ -25,7 +25,7 @@ function showToast(message, type = 'success') {
     toastContainer.appendChild(toast);
     if (typeof lucide !== 'undefined') lucide.createIcons({ root: toast });
 
-    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => toast.classList.add('show'), 50);
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 400);
